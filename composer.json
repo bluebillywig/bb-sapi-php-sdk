@@ -1,0 +1,18 @@
+{
+    "name": "bluebillywig/bbsdk",
+    "type": "library",
+    "license": "MIT",
+    "config": {
+        "platform": {
+            "php": "8"
+        }
+    },
+    "require": {
+        "guzzlehttp/guzzle": "^7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "BlueBillywig\\": "src/"
+        }
+    }
+}
