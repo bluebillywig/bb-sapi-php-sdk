@@ -12,7 +12,7 @@ use GuzzleHttp\Psr7\Utils as Psr7Utils;
 
 /**
  * Representation of the MediaClip entity in the OVP.
- * 
+ *
  * @method Response fullUpload(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null) Execute the full flow for uploading a MediaClip file. @see fullUploadAsync
  * @method Response upload(string|\SplFileInfo $mediaClipPath) Retrieve the presigned URLs for a MediaClip file upload. @see uploadAsync
  * @method Response abortUpload(string $s3FileKey, string $s3UploadId) Abort the multipart upload of a MediaClip file. @see abortUploadAsync
@@ -26,9 +26,9 @@ class MediaClip extends Entity
      *
      * @param string|\SplFileInfo $mediaClipPath The path to the MediaClip file that will be uploaded.
      * @param ?int $mediaClipId ID of a MediaClip that should only be given when replacing the MediaClip file.
-     * 
+     *
      * @return PromiseInterface
-     * 
+     *
      * @throws \UnexpectedValueException
      * @throws BlueBillyWig\Exception\HTTPRequestException
      */
@@ -93,9 +93,9 @@ class MediaClip extends Entity
      * Retrieve the presigned URLs for a MediaClip file upload and return a promise.
      *
      * @param string|\SplFileInfo $mediaClipPath The path to the MediaClip file that will be uploaded.
-     * 
+     *
      * @return PromiseInterface
-     * 
+     *
      * @throws \UnexpectedValueException
      * @throws BlueBillyWig\Exception\HTTPRequestException
      */
@@ -121,12 +121,12 @@ class MediaClip extends Entity
 
     /**
      * Abort the multipart upload of a MediaClip file.
-     * 
+     *
      * @param string $s3FileKey Key of the object for which the multipart upload was initiated.
      * @param string $s3UploadId Upload ID that identifies the multipart upload.
-     * 
+     *
      * @return PromiseInterface
-     * 
+     *
      * @throws BlueBillyWig\Exception\HTTPRequestException
      */
     public function abortUploadAsync(string $s3FileKey, string $s3UploadId): PromiseInterface
@@ -144,12 +144,12 @@ class MediaClip extends Entity
 
     /**
      * Complete the multipart upload of a MediaClip file.
-     * 
+     *
      * @param string $s3FileKey Key of the object for which the multipart upload was initiated.
      * @param string $s3UploadId Upload ID that identifies the multipart upload.
      * @param array[] $s3Parts Details of the parts that were uploaded.
      * @param ?int $mediaClipId ID of a MediaClip that should only be given when replacing the MediaClip file.
-     * 
+     *
      * @throws BlueBillyWig\Exception\HTTPRequestException
      */
     public function completeUploadAsync(string $s3FileKey, string $s3UploadId, array $s3Parts, ?int $mediaClipId = null): PromiseInterface

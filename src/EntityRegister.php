@@ -4,8 +4,14 @@ namespace BlueBillywig;
 
 abstract class EntityRegister
 {
+    /**
+     * @var string[]
+     */
     protected static array $entitiesCls;
 
+    /**
+     * @var EntityRegisterItem[]
+     */
     private array $entities;
 
     public function __construct(array $entities = [])
@@ -34,7 +40,7 @@ abstract class EntityRegister
 
         $entityCallName = $nameOverride ?? strtolower($refl->getShortName());
         if (!in_array($entityCallName, $this->entities)) {
-            $this->entities[$entityCallName] = new $entityCls($this);
+            $this->entities[$entityCallName] = new EntityRegisterItem($entityCls, $this);
         }
     }
 

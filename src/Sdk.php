@@ -12,7 +12,7 @@ use GuzzleHttp\Middleware as GuzzleMiddleware;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\ResponseInterface;
 
-/** 
+/**
  * @property \BlueBillywig\Entities\MediaClip $mediaclip
  */
 class Sdk extends EntityRegister
