@@ -5,7 +5,6 @@ namespace BlueBillywig;
 use BlueBillywig\Exception\HTTPClientErrorRequestException;
 use BlueBillywig\Exception\HTTPRequestException;
 use BlueBillywig\Exception\HTTPServerErrorRequestException;
-use Generator;
 use GuzzleHttp\Psr7\Response as GuzzleHttpResponse;
 
 enum HTTPStatusCodeCategory
@@ -107,7 +106,7 @@ class Response extends GuzzleHttpResponse
     /**
      * Retrieve the failed Responses of a list of Responses.
      */
-    public static function getFailedResponse(array $responseList): Generator
+    public static function getFailedResponse(array $responseList): \Generator
     {
         foreach ($responseList as $response) {
             if (!$response->isOk()) {

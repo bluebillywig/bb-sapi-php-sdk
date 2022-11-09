@@ -2,13 +2,11 @@
 
 namespace BlueBillywig;
 
-use Closure;
-
 class EntityRegisterItem
 {
     private string $cls;
     private EntityRegister $parent;
-    private ?Closure $factory;
+    private ?\Closure $factory;
     private ?Entity $instance;
 
     public function __construct(string $cls, EntityRegister $parent, ?callable $factory = null)
@@ -16,7 +14,7 @@ class EntityRegisterItem
         $this->cls = $cls;
         $this->parent = $parent;
         if (!empty($factory)) {
-            $this->factory = Closure::fromCallable($factory);
+            $this->factory = \Closure::fromCallable($factory);
         }
     }
 

@@ -6,10 +6,11 @@ use BlueBillywig\Entity;
 use BlueBillywig\Exception\HTTPRequestException;
 use BlueBillywig\Request;
 use BlueBillywig\Response;
+use GuzzleHttp\Promise\Coroutine;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;
 use GuzzleHttp\Psr7\Utils as Psr7Utils;
-use InvalidArgumentException;
+use GuzzleHttp\RequestOptions;
 
 /**
  * Representation of the MediaClip entity in the OVP.
@@ -38,7 +39,7 @@ class MediaClip extends Entity
             $mediaClipPath = new \SplFileInfo(strval($mediaClipPath));
         }
 
-        $response = $this->uploadAsync($mediaClipPath)->wait();
+        $response = $this->uploadAsync($mediaClipPath, $mediaClipId)->wait();
         $response->assertIsOk();
 
         $data = json_decode($response->getBody()->getContents(), true);
@@ -47,25 +48,24 @@ class MediaClip extends Entity
             return $this->performUpload($mediaClipPath, $data['presignedUrls'][0]);
         }
 
-        return $this->performMultiPartUpload($mediaClipPath, $data['presignedUrls'])->then(
-            function (array $responses) use ($data, $mediaClipId) {
-                try {
-                    Response::assertAllOk($responses);
-                } catch (HTTPRequestException $e) {
-                    // No need to return a promise, since an exception is immediately thrown afterwards
-                    $this->abortUploadAsync($data['key'], $data['uploadId'])->wait()->assertIsOk();
-                    throw $e;
-                }
-                $parts = [];
-                foreach ($responses as $response) {
-                    $parts[] = [
-                        "ETag" => trim($response->getHeader("ETag")[0], "\""),
-                        "PartNumber" => $response->getRequest()->getQueryParam("partNumber")
-                    ];
-                }
-                return $this->completeUploadAsync($data['key'], $data['uploadId'], $parts, $mediaClipId);
+        return Coroutine::of(function () use ($mediaClipPath, $data, $mediaClipId) {
+            $responses = (yield $this->performMultiPartUpload($mediaClipPath, $data['presignedUrls']));
+            try {
+                Response::assertAllOk($responses);
+            } catch (HTTPRequestException $e) {
+                $response = (yield $this->abortUploadAsync($data['key'], $data['uploadId']));
+                $response->assertIsOk();
+                throw $e;
             }
-        );
+            $parts = [];
+            foreach ($responses as $response) {
+                $parts[] = [
+                    "ETag" => trim($response->getHeader("ETag")[0], "\""),
+                    "PartNumber" => $response->getRequest()->getQueryParam("partNumber")
+                ];
+            }
+            yield $this->completeUploadAsync($data['key'], $data['uploadId'], $parts, $mediaClipId);
+        });
     }
 
     private function performMultiPartUpload(\SplFileInfo $mediaClipPath, array $presignedUrls): PromiseInterface
@@ -93,11 +93,12 @@ class MediaClip extends Entity
      * Retrieve the presigned URLs for a MediaClip file upload and return a promise.
      *
      * @param string|\SplFileInfo $mediaClipPath The path to the MediaClip file that will be uploaded.
+     * @param ?int $mediaClipId ID of a MediaClip that should only be given when replacing the MediaClip file.
      *
      * @throws \InvalidArgumentException
      * @throws \BlueBillyWig\Exception\HTTPRequestException
      */
-    public function uploadAsync(string|\SplFileInfo $mediaClipPath): PromiseInterface
+    public function uploadAsync(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null): PromiseInterface
     {
         if (!($mediaClipPath instanceof \SplFileInfo)) {
             $mediaClipPath = new \SplFileInfo(strval($mediaClipPath));
@@ -105,16 +106,18 @@ class MediaClip extends Entity
         if (!$mediaClipPath->isFile()) {
             throw new \InvalidArgumentException("File {$mediaClipPath} is not a file or does not exist.");
         }
+        $requestOptions = [RequestOptions::QUERY => [
+            "filename" => $mediaClipPath->getFilename(),
+            "filesize" => $mediaClipPath->getSize()
+        ]];
+        if (!empty($mediaClipId)) {
+            $requestOptions[RequestOptions::QUERY]["clipid"] = $mediaClipId;
+        }
 
         return $this->sdk->sendRequestAsync(new Request(
             "GET",
             "/sapi/mediaclip/0/upload"
-        ), [
-            "query" => [
-                "filename" => $mediaClipPath->getFilename(),
-                "filesize" => $mediaClipPath->getSize()
-            ]
-        ]);
+        ), $requestOptions);
     }
 
     /**
@@ -131,7 +134,7 @@ class MediaClip extends Entity
             "PUT",
             "/sapi/mediaclip/0/abortUpload"
         ), [
-            "query" => [
+            RequestOptions::QUERY => [
                 "s3filekey" => $s3FileKey,
                 "s3uploadid" => $s3UploadId,
             ]
@@ -150,7 +153,7 @@ class MediaClip extends Entity
      */
     public function completeUploadAsync(string $s3FileKey, string $s3UploadId, array $s3Parts, ?int $mediaClipId = null): PromiseInterface
     {
-        $requestOptions = ["query" => [
+        $requestOptions = [RequestOptions::QUERY => [
             "json" => json_encode([
                 "s3FileKey" => $s3FileKey,
                 "s3UploadId" => $s3UploadId,
@@ -158,7 +161,7 @@ class MediaClip extends Entity
             ]),
         ]];
         if (!empty($mediaClipId)) {
-            $requestOptions["query"]["clipId"] = $mediaClipId;
+            $requestOptions[RequestOptions::QUERY]["clipid"] = $mediaClipId;
         }
         return $this->sdk->sendRequestAsync(new Request(
             "PUT",
@@ -177,11 +180,11 @@ class MediaClip extends Entity
      */
     public function getAsync(int|string $id, ?string $lang = null, bool $includeJobs = true): PromiseInterface
     {
-        $requestOptions = ["query" => [
+        $requestOptions = [RequestOptions::QUERY => [
             "includejobs" => $includeJobs
         ]];
         if (!empty($lang)) {
-            $requestOptions['query']['lang'] = $lang;
+            $requestOptions[RequestOptions::QUERY]['lang'] = $lang;
         }
         return $this->sdk->sendRequestAsync(new Request(
             "GET",

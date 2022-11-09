@@ -8,6 +8,9 @@ use GuzzleHttp\Promise\PromiseInterface;
 
 /**
  * @method Response get(int|string $id) Retrieve an Entity by its ID. @see getAsync
+ * @method Response delete(int|string $id) Delete an Entity by its ID. @see deleteAsync
+ * @method Response update(int|string $id, array $props) Update an Entity by its ID. @see updateAsync
+ * @method Response create(int|string $id, array $props) Create an Entity by its ID. @see createAsync
  */
 abstract class Entity extends EntityRegister
 {
@@ -51,6 +54,38 @@ abstract class Entity extends EntityRegister
      * @param int|string $id The ID of the Entity.
      */
     public function getAsync(int|string $id): PromiseInterface
+    {
+        throw new NotImplementedException("This method is not implemented.");
+    }
+
+    /**
+     * Delete an Entity by its ID and return a promise.
+     *
+     * @param int|string $id The ID of the Entity.
+     */
+    public function deleteAsync(int|string $id): PromiseInterface
+    {
+        throw new NotImplementedException("This method is not implemented.");
+    }
+
+    /**
+     * Update an Entity by its ID and return a promise.
+     *
+     * @param int|string $id The ID of the Entity.
+     * @param array $props The properties of the Entity to update.
+     */
+    public function updateAsync(int|string $id, array $props): PromiseInterface
+    {
+        throw new NotImplementedException("This method is not implemented.");
+    }
+
+    /**
+     * Create an Entity by its ID and return a promise.
+     *
+     * @param int|string $id The ID of the Entity.
+     * @param array $props The properties of the Entity to create.
+     */
+    public function createAsync(int|string $id, array $props): PromiseInterface
     {
         throw new NotImplementedException("This method is not implemented.");
     }
