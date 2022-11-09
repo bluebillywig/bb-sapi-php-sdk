@@ -9,6 +9,7 @@ use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\HandlerStack as GuzzleHandlerStack;
 use GuzzleHttp\Handler\CurlHandler as GuzzleCurlHandler;
 use GuzzleHttp\Middleware as GuzzleMiddleware;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Uri;
 use Psr\Http\Message\ResponseInterface;
 
@@ -34,12 +35,28 @@ class Sdk extends EntityRegister
         $this->guzzleClient = new GuzzleClient(['handler' => $stack] + $options);
     }
 
+    /**
+     * Create a new Sdk instance with RPCToken authentication.
+     *
+     * @param string $publication The name of the OVP publication (https://[publication name].bbvms.com).
+     * @param int $tokenId The ID of the token.
+     * @param string $sharedSecret The randomly generated shared secret.
+     * @param array $options Client configuration settings.
+     */
     public static function withRPCTokenAuthentication(string $publication, int $tokenId, string $sharedSecret, array $options = []): static
     {
         return new static($publication, new RPCTokenAuthenticator($tokenId, $sharedSecret), $options);
     }
 
-    public function sendRequestAsync(Request $request, array $options = [])
+    /**
+     * Send an asynchronous request.
+     *
+     * @param Request $request The Request as an object to send.
+     * @param array $options An array of Request options. @see \GuzzleHttp\RequestOptions
+     *
+     * @throws \BlueBillyWig\Exception\HTTPRequestException
+     */
+    public function sendRequestAsync(Request $request, array $options = []): PromiseInterface
     {
         $requestUri = $request->getUri();
         if (substr($requestUri, 0, 6) === '/sapi/') {
@@ -58,14 +75,25 @@ class Sdk extends EntityRegister
     }
 
     /**
-     * @return Response
+     * Send a synchronous request.
+     *
+     * @param Request $request The Request as an object to send.
+     * @param array $options An array of Request options. @see \GuzzleHttp\RequestOptions
+     *
+     * @throws \BlueBillyWig\Exception\HTTPRequestException
      */
-    public function sendRequest(Request $request, array $options = [])
+    public function sendRequest(Request $request, array $options = []): Response
     {
         return $this->sendRequestAsync($request, $options)->wait();
     }
 
-    public static function parseResponse(Request $request, ResponseInterface $response)
+    /**
+     * Parse the ResponseInterface to a \BlueBillywig\Response object.
+     *
+     * @param Request $request The Request that was sent.
+     * @param ResponseInterface $response The ResponseInterface that needs to be parsed.
+     */
+    public static function parseResponse(Request $request, ResponseInterface $response): Response
     {
         return new Response(
             $request,
@@ -77,6 +105,9 @@ class Sdk extends EntityRegister
         );
     }
 
+    /**
+     * Get the active Sdk instance.
+     */
     protected function getSdk(): Sdk
     {
         return $this;

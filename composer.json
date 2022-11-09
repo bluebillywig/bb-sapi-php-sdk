@@ -1,7 +1,13 @@
 {
     "name": "bluebillywig/bb-sapi-php-sdk",
     "type": "library",
-    "license": "MIT",
+    "license": "Apache-2.0",
+    "authors": [
+        {
+            "name": "Blue Billywig Simple API",
+            "homepage": "https://www.bluebillywig.com"
+        }
+    ],
     "config": {
         "platform": {
             "php": "8"

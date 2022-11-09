@@ -22,6 +22,9 @@ abstract class EntityRegister
         }
     }
 
+    /**
+     * Allows for automatic retrieving of a registered Entity.
+     */
     public function __get($name)
     {
         if (array_key_exists($name, $this->entities)) {
@@ -30,7 +33,13 @@ abstract class EntityRegister
         return $this->$name;
     }
 
-    protected function registerEntity($entityCls, $nameOverride = null)
+    /**
+     * Register an Entity.
+     *
+     * @param string $entityCls The Entity class.
+     * @param ?string $nameOverride Override the name that is used to call this Entity. By default the lowercase class name is used.
+     */
+    protected function registerEntity(string $entityCls, ?string $nameOverride = null): void
     {
         $refl = new \ReflectionClass($entityCls);
 
@@ -44,5 +53,8 @@ abstract class EntityRegister
         }
     }
 
+    /**
+     * Retrieve the Sdk instance to which this EntityRegister is linked.
+     */
     protected abstract function getSdk(): Sdk;
 }

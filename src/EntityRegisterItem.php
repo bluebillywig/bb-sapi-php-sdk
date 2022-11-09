@@ -20,22 +20,31 @@ class EntityRegisterItem
         }
     }
 
+    /**
+     * Pass method calls to the Entity instance.
+     */
     public function __call($name, $arguments)
     {
         return call_user_func_array([$this->getInstance(), $name], $arguments);
     }
 
+    /**
+     * Pass property get calls to the Entity instance.
+     */
     public function __get($name)
     {
         return $this->getInstance()->$name;
     }
 
-    public function __set($name, $value)
+    /**
+     * Pass property set calls to the Entity instance.
+     */
+    public function __set($name, $value): void
     {
         $this->getInstance()->$name = $value;
     }
 
-    private function getInstance()
+    private function getInstance(): Entity
     {
         if (!isset($this->instance)) {
             if (isset($this->factory)) {

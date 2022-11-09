@@ -5,6 +5,7 @@ namespace BlueBillywig;
 use BlueBillywig\Exception\HTTPClientErrorRequestException;
 use BlueBillywig\Exception\HTTPRequestException;
 use BlueBillywig\Exception\HTTPServerErrorRequestException;
+use Generator;
 use GuzzleHttp\Psr7\Response as GuzzleHttpResponse;
 
 enum HTTPStatusCodeCategory
@@ -32,12 +33,18 @@ class Response extends GuzzleHttpResponse
         $this->request = $request;
     }
 
-    public function isOk()
+    /**
+     * Retrieve whether the StatusCode is in the range of 200 to 299.
+     */
+    public function isOk(): bool
     {
         return $this->getStatusCodeCategory() === HTTPStatusCodeCategory::Successful;
     }
 
-    public function assertIsOk()
+    /**
+     * Check if the StatusCode is in the range of 200 to 299 and throw an exception if it is not.
+     */
+    public function assertIsOk(): void
     {
         if (!$this->isOk()) {
             switch ($this->getStatusCodeCategory()) {
@@ -51,6 +58,9 @@ class Response extends GuzzleHttpResponse
         }
     }
 
+    /**
+     * Retrieve the StatusCode category.
+     */
     public function getStatusCodeCategory(): HTTPStatusCodeCategory
     {
         switch ($statusCode = $this->getStatusCode()) {
@@ -69,7 +79,12 @@ class Response extends GuzzleHttpResponse
         }
     }
 
-    public static function allOk(array $responseList)
+    /**
+     * Retrieve whether the StatusCodes of a list of Responses are in the range of 200 to 299.
+     *
+     * @param Response[] $responseList The list of Responses for which to check the status code.
+     */
+    public static function allOk(array $responseList): bool
     {
         foreach ($responseList as $response) {
             if (!$response->isOk()) {
@@ -79,25 +94,52 @@ class Response extends GuzzleHttpResponse
         return true;
     }
 
-    public static function assertAllOk(array $responseList)
+    /**
+     * Check if the StatusCodes of a list of Responses are in the range of 200 to 299 and throw an exception if at least one is not.
+     */
+    public static function assertAllOk(array $responseList): void
     {
         foreach ($responseList as $response) {
             $response->assertIsOk();
         }
     }
 
-    public static function getFailedResponse(array $responseList)
+    /**
+     * Retrieve the failed Responses of a list of Responses.
+     */
+    public static function getFailedResponse(array $responseList): Generator
     {
         foreach ($responseList as $response) {
             if (!$response->isOk()) {
-                return $response;
+                yield $response;
             }
         }
-        return null;
     }
 
-    public function getRequest()
+    /**
+     * Retrieve the Request object of this Response.
+     */
+    public function getRequest(): Request
     {
         return $this->request;
+    }
+
+    /**
+     * Get the Response Body as JSON.
+     *
+     * @param bool $associative When **TRUE**, returned objects will be converted into associative arrays.
+     *
+     * @throws \UnexpectedValueException
+     * @throws \JsonException
+     */
+    public function getJson(bool $associative = true): null|array|object
+    {
+        $body = $this->getBody();
+        if (!$body->isReadable()) {
+            throw new \UnexpectedValueException("Response body is not readable.");
+        } elseif ($body->getSize() === 0) {
+            return null;
+        }
+        return json_decode($body->getContents(), $associative, 512, JSON_THROW_ON_ERROR);
     }
 }

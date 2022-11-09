@@ -1,6 +1,6 @@
-# BB SAPI PHP SDK
+# Blue Billywig SAPI PHP SDK
 
-This PHP SDK provides abstractions to interact with the BlueBillywig Simple API.
+This PHP SDK provides abstractions to interact with the Blue Billywig Simple API.
 
 ## Installation
 
@@ -10,7 +10,7 @@ TODO
 
 In order to use this SDK, three things are prerequisite:
 
-1. A publication is created and active in BlueBillyig _Online Video Platform_ (OVP).
+1. A publication is created and active in the Blue Billywig _Online Video Platform_ (OVP).
 2. An account is created within the publication in the OVP.
 3. An API Key was created using the account in the OVP.
 
