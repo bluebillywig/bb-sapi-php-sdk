@@ -15,11 +15,40 @@
     },
     "require": {
         "guzzlehttp/guzzle": "^7.5",
-        "composer/ca-bundle": "^1.3"
+        "composer/ca-bundle": "^1.3",
+        "bluebillywig/vmsrpc": "^0.97.6"
     },
     "autoload": {
         "psr-4": {
             "BlueBillywig\\": "src/"
         }
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.0",
+        "codeception/assert-throws": "^1.2",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-phpbrowser": "^3.0",
+        "guzzlehttp/test-server": "^0.1.0",
+        "symfony/yaml": "^5.4"
+    },
+    "scripts": {
+        "test:unit": [
+            "codecept run Unit"
+        ],
+        "test:unit:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "codecept run Unit --coverage"
+        ],
+        "test:unit:coverage-html": [
+            "@putenv XDEBUG_MODE=coverage",
+            "codecept run Unit --coverage --coverage-html"
+        ],
+        "test:unit:coverage-text": [
+            "@putenv XDEBUG_MODE=coverage",
+            "codecept run Unit --coverage --coverage-text"
+        ],
+        "test:unit:coverage-check": [
+            "php ./check-coverage.php"
+        ]
     }
 }

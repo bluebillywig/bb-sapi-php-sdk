@@ -5,7 +5,7 @@ namespace BlueBillywig;
 abstract class EntityRegister
 {
     /**
-     * @var string[]
+     * @var array<array<string,string>|string> List of nested entities or mappings of entity names and entities
      */
     protected static array $entitiesCls;
 
@@ -14,11 +14,21 @@ abstract class EntityRegister
      */
     private array $entities;
 
+    /**
+     * @var array<string,string> $entities Optional mapping of entity names and entities.
+     */
     public function __construct(array $entities = [])
     {
         $this->entities = $entities;
         foreach (static::$entitiesCls ?? [] as $entityCls) {
-            $this->registerEntity($entityCls);
+            if (empty($entityCls)) {
+                throw new \UnexpectedValueException("Empty entity mapping given.");
+            }
+            if (array_keys($entityCls) === range(0, count($entityCls) - 1)) {
+                $this->registerEntity($entityCls[0]);
+            } else {
+                $this->registerEntity(array_values($entityCls)[0], array_keys($entityCls)[0]);
+            }
         }
     }
 
@@ -47,7 +57,7 @@ abstract class EntityRegister
             throw new \TypeError("Given entity $entityCls is not a subclass of " . Entity::class . ".");
         }
 
-        $entityCallName = $nameOverride ?? strtolower($refl->getShortName());
+        $entityCallName = $nameOverride ?? lcfirst($refl->getShortName());
         if (!in_array($entityCallName, $this->entities)) {
             $this->entities[$entityCallName] = new EntityRegisterItem($entityCls, $this);
         }
