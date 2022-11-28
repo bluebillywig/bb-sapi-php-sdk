@@ -21,5 +21,24 @@
         "psr-4": {
             "BlueBillywig\\": "src/"
         }
+    },
+    "require-dev": {
+        "codeception/codeception": "^5.0",
+        "codeception/assert-throws": "^1.2",
+        "codeception/module-asserts": "^3.0",
+        "codeception/module-phpbrowser": "^3.0"
+    },
+    "scripts": {
+        "test:unit": [
+            "codecept run Unit"
+        ],
+        "test:unit:coverage": [
+            "@putenv XDEBUG_MODE=coverage",
+            "codecept run Unit --coverage"
+          ],
+          "test:unit:coverage-html": [
+            "@putenv XDEBUG_MODE=coverage",
+            "codecept run Unit --coverage --coverage-html"
+          ]
     }
 }

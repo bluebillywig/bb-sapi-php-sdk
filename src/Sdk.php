@@ -32,11 +32,11 @@ class Sdk extends EntityRegister
     {
         parent::__construct();
         $this->publication = $publication;
-        $handler = new GuzzleCurlHandler();
+        $handler = $options['handler'] ?? new GuzzleCurlHandler();
         $stack = GuzzleHandlerStack::create($handler);
         $stack->push(GuzzleMiddleware::mapRequest($authenticator));
+        $options['handler'] = $stack;
         $this->guzzleClient = new GuzzleClient($options + [
-            'handler' => $stack,
             RequestOptions::VERIFY => CaBundle::getSystemCaRootBundlePath()
         ]);
     }
