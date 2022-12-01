@@ -7,21 +7,21 @@ use Psr\Http\Message\RequestInterface;
 
 class RPCTokenAuthenticator extends Authenticator
 {
-    private $tokenId;
-    private $sharedSecret;
+    private int $tokenId;
+    private string $sharedSecret;
 
-    public function __construct($tokenId, $sharedSecret)
+    public function __construct(int $tokenId, string $sharedSecret)
     {
         $this->tokenId = $tokenId;
         $this->sharedSecret = $sharedSecret;
     }
 
-    public function __invoke(RequestInterface $request)
+    public function __invoke(RequestInterface $request): RequestInterface
     {
         return $request->withHeader("rpctoken", "{$this->tokenId}-{$this->calculateToken()}");
     }
 
-    private function calculateToken($expire = null)
+    private function calculateToken($expire = null): string
     {
         if (!is_numeric($expire)) {
             $expire = 120;

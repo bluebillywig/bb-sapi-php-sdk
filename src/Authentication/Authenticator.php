@@ -6,5 +6,9 @@ use Psr\Http\Message\RequestInterface;
 
 abstract class Authenticator
 {
-    public abstract function __invoke(RequestInterface $request);
+    /**
+     * The authentication (headers) to apply to the RequestInterface.
+     * This is used as a MiddleWare.
+     */
+    public abstract function __invoke(RequestInterface $request): RequestInterface;
 }

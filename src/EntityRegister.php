@@ -4,8 +4,14 @@ namespace BlueBillywig;
 
 abstract class EntityRegister
 {
+    /**
+     * @var string[]
+     */
     protected static array $entitiesCls;
 
+    /**
+     * @var EntityRegisterItem[]
+     */
     private array $entities;
 
     public function __construct(array $entities = [])
@@ -16,6 +22,9 @@ abstract class EntityRegister
         }
     }
 
+    /**
+     * Allows for automatic retrieving of a registered Entity.
+     */
     public function __get($name)
     {
         if (array_key_exists($name, $this->entities)) {
@@ -24,7 +33,13 @@ abstract class EntityRegister
         return $this->$name;
     }
 
-    protected function registerEntity($entityCls, $nameOverride = null)
+    /**
+     * Register an Entity.
+     *
+     * @param string $entityCls The Entity class.
+     * @param ?string $nameOverride Override the name that is used to call this Entity. By default the lowercase class name is used.
+     */
+    protected function registerEntity(string $entityCls, ?string $nameOverride = null): void
     {
         $refl = new \ReflectionClass($entityCls);
 
@@ -34,9 +49,12 @@ abstract class EntityRegister
 
         $entityCallName = $nameOverride ?? strtolower($refl->getShortName());
         if (!in_array($entityCallName, $this->entities)) {
-            $this->entities[$entityCallName] = new $entityCls($this);
+            $this->entities[$entityCallName] = new EntityRegisterItem($entityCls, $this);
         }
     }
 
+    /**
+     * Retrieve the Sdk instance to which this EntityRegister is linked.
+     */
     protected abstract function getSdk(): Sdk;
 }
