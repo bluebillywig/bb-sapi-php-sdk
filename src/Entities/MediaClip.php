@@ -17,6 +17,7 @@ use GuzzleHttp\RequestOptions;
  * @method Response completeUpload(string $s3FileKey, string $s3UploadId, array $s3Parts) Complete the multipart upload of a MediaClip file. @see completeUploadAsync
  * @method Response get(int|string $id, ?string $lang = null, bool $includeJobs = true) Retrieve a MediaClip by its ID. @see getAsync
  * @method Response create(array $props, bool $softSave = false, ?string $lang = null) Create a MediaClip. @see createAsync
+ * @method Response update(int|string $id, array $props, bool $softSave = false, ?string $lang = null) Update a MediaClip by its ID and return a promise. @see updateAsync
  */
 class MediaClip extends Entity
 {
@@ -146,6 +147,32 @@ class MediaClip extends Entity
         return $this->sdk->sendRequestAsync(new Request(
             "PUT",
             "/sapi/mediaclip"
+        ), $requestOptions);
+    }
+
+    /*
+     * Update a MediaClip by its ID and return a promise.
+     * Note that all the MediaClip metadata is updated, so first a retrieval should be done and all the metadata should be given, even the fields that have not changed.
+     *
+     * @param int|string $id The ID of the MediaClip.
+     * @param array $props The properties of the MediaClip to update.
+     * @param bool $softSave Whether to save only after checking if the content of the MediaClip has changed after being fetched, defaults to false.
+     * @param ?string $lang The language of the MediaClip.
+     */
+    public function updateAsync(int|string $id, array $props, bool $softSave = false, ?string $lang = null): PromiseInterface
+    {
+        $requestOptions = [
+            RequestOptions::QUERY => [
+                "softsave" => $softSave
+            ],
+            RequestOptions::JSON => $props
+        ];
+        if (!empty($lang)) {
+            $requestOptions[RequestOptions::QUERY]['lang'] = $lang;
+        }
+        return $this->sdk->sendRequestAsync(new Request(
+            "PUT",
+            "/sapi/mediaclip/$id"
         ), $requestOptions);
     }
 }
