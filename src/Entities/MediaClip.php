@@ -3,91 +3,23 @@
 namespace BlueBillywig\Entities;
 
 use BlueBillywig\Entity;
-use BlueBillywig\Exception\HTTPRequestException;
 use BlueBillywig\Request;
 use BlueBillywig\Response;
-use GuzzleHttp\Promise\Coroutine;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Promise\Utils;
-use GuzzleHttp\Psr7\Utils as Psr7Utils;
 use GuzzleHttp\RequestOptions;
 
 /**
- * Representation of the MediaClip entity in the OVP.
+ * Representation of the MediaClip resource on the Blue Billywig SAPI.
  *
- * @method Response fullUpload(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null) Execute the full flow for uploading a MediaClip file. @see fullUploadAsync
- * @method Response upload(string|\SplFileInfo $mediaClipPath) Retrieve the presigned URLs for a MediaClip file upload. @see uploadAsync
+ * @property \BlueBillywig\Helpers\MediaClipHelper $helper
+ * @method Response initializeUpload(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null) Retrieve the presigned URLs for a MediaClip file upload. @see initializeUploadAsync
  * @method Response abortUpload(string $s3FileKey, string $s3UploadId) Abort the multipart upload of a MediaClip file. @see abortUploadAsync
  * @method Response completeUpload(string $s3FileKey, string $s3UploadId, array $s3Parts, int $mediaClipId = null) Complete the multipart upload of a MediaClip file. @see completeUploadAsync
  * @method Response get(int|string $id, ?string $lang = null, bool $includeJobs = true) Retrieve a MediaClip by its ID. @see getAsync
  */
 class MediaClip extends Entity
 {
-    /**
-     * Execute the full flow for uploading a MediaClip file and return a promise.
-     * This combines the uploadAsync, abortUploadAsync, and completeUploadAsync methods.
-     *
-     * @param string|\SplFileInfo $mediaClipPath The path to the MediaClip file that will be uploaded.
-     * @param ?int $mediaClipId ID of a MediaClip that should only be given when replacing the MediaClip file.
-     *
-     * @throws \InvalidArgumentException
-     * @throws \BlueBillyWig\Exception\HTTPRequestException
-     */
-    public function fullUploadAsync(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null): PromiseInterface
-    {
-        if (!($mediaClipPath instanceof \SplFileInfo)) {
-            $mediaClipPath = new \SplFileInfo(strval($mediaClipPath));
-        }
-
-        $response = $this->uploadAsync($mediaClipPath, $mediaClipId)->wait();
-        $response->assertIsOk();
-
-        $data = json_decode($response->getBody()->getContents(), true);
-        if ($data['chunks'] === 1) {
-            // PutObject command is performed instead of UploadPart, so we can directly return this promise
-            return $this->performUpload($mediaClipPath, $data['presignedUrls'][0]);
-        }
-
-        return Coroutine::of(function () use ($mediaClipPath, $data, $mediaClipId) {
-            $responses = (yield $this->performMultiPartUpload($mediaClipPath, $data['presignedUrls']));
-            try {
-                Response::assertAllOk($responses);
-            } catch (HTTPRequestException $e) {
-                $response = (yield $this->abortUploadAsync($data['key'], $data['uploadId']));
-                $response->assertIsOk();
-                throw $e;
-            }
-            $parts = [];
-            foreach ($responses as $response) {
-                $parts[] = [
-                    "ETag" => trim($response->getHeader("ETag")[0], "\""),
-                    "PartNumber" => $response->getRequest()->getQueryParam("partNumber")
-                ];
-            }
-            yield $this->completeUploadAsync($data['key'], $data['uploadId'], $parts, $mediaClipId);
-        });
-    }
-
-    private function performMultiPartUpload(\SplFileInfo $mediaClipPath, array $presignedUrls): PromiseInterface
-    {
-        $promises = [];
-        foreach ($presignedUrls as $presignedUrl) {
-            $promises[] = $this->performUpload($mediaClipPath, $presignedUrl);
-        }
-        return Utils::all($promises);
-    }
-
-    private function performUpload(\SplFileInfo $mediaClipPath, array $presignedUrl): PromiseInterface
-    {
-        $fileObject = $mediaClipPath->openFile();
-        $fileObject->fseek($presignedUrl['offset'] ?? 0);
-        return $this->sdk->sendRequestAsync(new Request(
-            "PUT",
-            $presignedUrl['presignedUrl'],
-            [],
-            Psr7Utils::streamFor($fileObject->fread($presignedUrl['chunkSize'] ?? $fileObject->getSize()))
-        ));
-    }
+    protected static string $helperCls = \BlueBillywig\Helpers\MediaClipHelper::class;
 
     /**
      * Retrieve the presigned URLs for a MediaClip file upload and return a promise.
@@ -98,7 +30,7 @@ class MediaClip extends Entity
      * @throws \InvalidArgumentException
      * @throws \BlueBillyWig\Exception\HTTPRequestException
      */
-    public function uploadAsync(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null): PromiseInterface
+    public function initializeUploadAsync(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null): PromiseInterface
     {
         if (!($mediaClipPath instanceof \SplFileInfo)) {
             $mediaClipPath = new \SplFileInfo(strval($mediaClipPath));

@@ -20,6 +20,7 @@ Once the aforementioned prerequisites are in place the SDK can be used in any PH
 <?php
 
 use BlueBillywig\Sdk;
+use GuzzleHttp\Promise\Coroutine;
 
 $publication = "my-publication"; // The publication name (https://<publication name>.bbvms.com) in which the account and API key were created.
 $tokenId = 1; // The ID of the generated API key.
@@ -28,11 +29,17 @@ $sharedSecret = "my-shared-secret"; // The randomly generated shared secret.
 $sdk = Sdk::withRPCTokenAuthentication($publication, $tokenId, $sharedSecret);
 
 // Asynchronous
-$promise = $sdk->mediaclip->fullUploadAsync("/path/to/a/mediaclip.mp4");
-$response = $promise->wait();
+$promise = Coroutine::of(function () use ($sdk) {
+    $response = (yield $sdk->mediaclip->initializeUploadAsync("/path/to/a/mediaclip.mp4"));
+    $response->assertIsOk();
+
+    yield $sdk->mediaclip->helper->executeUploadAsync("/path/to/a/mediaclip.mp4", $response->getJson());
+});
+$promise->wait();
 
 // Synchronous
-$response = $sdk->mediaclip->fullUpload("/path/to/a/mediaclip.mp4");
-
+$response = $sdk->mediaclip->initializeUpload("/path/to/a/mediaclip.mp4");
 $response->assertIsOk();
+
+$sdk->mediaclip->helper->executeUpload("/path/to/a/mediaclip.mp4", $response->getJson());
 ```

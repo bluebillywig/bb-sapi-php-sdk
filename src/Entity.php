@@ -7,6 +7,11 @@ use BlueBillywig\Sdk;
 use GuzzleHttp\Promise\PromiseInterface;
 
 /**
+ * Base Entity class.
+ * An Entity represents a resource on the Blue Billywig SAPI.
+ * Entity class methods should only call one API method and should always return a Response object.
+ * 
+ * @property \BlueBillywig\Helper $helper
  * @method Response get(int|string $id) Retrieve an Entity by its ID. @see getAsync
  * @method Response delete(int|string $id) Delete an Entity by its ID. @see deleteAsync
  * @method Response update(int|string $id, array $props) Update an Entity by its ID. @see updateAsync
@@ -14,27 +19,36 @@ use GuzzleHttp\Promise\PromiseInterface;
  */
 abstract class Entity extends EntityRegister
 {
-    protected EntityRegister $parent;
-    protected Sdk $sdk;
+    use AutoAsyncToSyncCaller;
+
+    private EntityRegister $parent;
+    private Sdk $sdk;
+    private Helper $helper;
+
+    protected static string $helperCls;
 
     public function __construct(EntityRegister $parent)
     {
         $this->parent = $parent;
-        $this->getSdk();
         parent::__construct();
     }
 
     /**
-     * Allows for calling of (undefined) "synchronous" methods from defined "asynchronous" methods.
-     * This is tried for every called method that does not end with "Async".
+     * @inheritdoc
      */
-    public function __call($name, $arguments)
+    public function __get($name)
     {
-        $asyncMethodName = $name . "Async";
-        if (substr($name, -5) !== "Async" && method_exists($this, $asyncMethodName)) {
-            return call_user_func_array([$this, $asyncMethodName], $arguments)->wait();
+        if ($name === 'sdk') {
+            return $this->getSdk();
+        } elseif ($name === 'helper') {
+            if (!isset(static::$helperCls)) {
+                throw new \Exception(static::class . ' does not have a helper defined.');
+            } elseif (!isset($this->helper)) {
+                $this->helper = new (static::$helperCls)($this);
+            }
+            return $this->helper;
         }
-        return call_user_func_array([$this, $name], $arguments);
+        return parent::__get($name);
     }
 
     /**

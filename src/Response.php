@@ -141,4 +141,33 @@ class Response extends GuzzleHttpResponse
         }
         return json_decode($body->getContents(), $associative, 512, JSON_THROW_ON_ERROR);
     }
+
+    /**
+     * Get the Response Body as XML.
+     *
+     * @param bool $associative When **TRUE**, returned objects will be converted into associative arrays.
+     *
+     * @throws \UnexpectedValueException
+     * @throws \LibXMLError
+     */
+    public function getXml(bool $associative = true): null|array|\SimpleXMLElement
+    {
+        $body = $this->getBody();
+        if (!$body->isReadable()) {
+            throw new \UnexpectedValueException("Response body is not readable.");
+        } elseif ($body->getSize() === 0) {
+            return null;
+        }
+        $xml = simplexml_load_string($body);
+        if (empty($xml)) {
+            $error = libxml_get_last_error();
+            if (!empty($error)) {
+                throw $error;
+            }
+            return null;
+        } elseif (!$associative) {
+            return $xml;
+        }
+        return json_decode(json_encode($xml), true);
+    }
 }
