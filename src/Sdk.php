@@ -17,7 +17,7 @@ use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 
 /**
- * @property \BlueBillywig\Entities\MediaClip $mediaclip
+ * @property-read \BlueBillywig\Entities\MediaClip $mediaclip
  */
 class Sdk extends EntityRegister
 {

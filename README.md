@@ -28,18 +28,20 @@ $sharedSecret = "my-shared-secret"; // The randomly generated shared secret.
 
 $sdk = Sdk::withRPCTokenAuthentication($publication, $tokenId, $sharedSecret);
 
+$mediaClipPath = "/path/to/a/mediaclip.mp4";
+
 // Asynchronous
 $promise = Coroutine::of(function () use ($sdk) {
-    $response = (yield $sdk->mediaclip->initializeUploadAsync("/path/to/a/mediaclip.mp4"));
+    $response = (yield $sdk->mediaclip->initializeUploadAsync($mediaClipPath));
     $response->assertIsOk();
 
-    yield $sdk->mediaclip->helper->executeUploadAsync("/path/to/a/mediaclip.mp4", $response->getJson());
+    yield $sdk->mediaclip->helper->executeUploadAsync($mediaClipPath, $response->getDecodedBody());
 });
 $promise->wait();
 
 // Synchronous
-$response = $sdk->mediaclip->initializeUpload("/path/to/a/mediaclip.mp4");
+$response = $sdk->mediaclip->initializeUpload($mediaClipPath);
 $response->assertIsOk();
 
-$sdk->mediaclip->helper->executeUpload("/path/to/a/mediaclip.mp4", $response->getJson());
+$sdk->mediaclip->helper->executeUpload($mediaClipPath, $response->getDecodedBody());
 ```

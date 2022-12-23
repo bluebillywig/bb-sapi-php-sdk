@@ -14,8 +14,8 @@ use GuzzleHttp\Psr7\Utils as Psr7Utils;
 use GuzzleHttp\RequestOptions;
 
 /**
- * @property \BlueBillywig\Entities\MediaClip $entity
- * @method bool executeUpload(string|\SplFileInfo $mediaClipPath, array $uploadData, ?int $mediaClipId = null) Execute the full flow for uploading a MediaClip file. @see executeUploadAsync
+ * @property-read \BlueBillywig\Entities\MediaClip $entity
+ * @method bool executeUpload(string|\SplFileInfo $mediaClipPath, array $uploadData) Execute the full flow for uploading a MediaClip file. @see executeUploadAsync
  * @method int|float getUploadProgress(string|Uri $listPartsUrl, string|Uri $headObjectUrl, int $partsCount, int $requestDelay = 0) Retrieve the progress of a MediaClip file upload. @see getUploadProgressAsync
  */
 class MediaClipHelper extends Helper
@@ -28,12 +28,11 @@ class MediaClipHelper extends Helper
      *
      * @param string|\SplFileInfo $mediaClipPath The path to the MediaClip file that will be uploaded.
      * @param array $uploadData The upload data containing the parts to be uploaded.
-     * @param ?int $mediaClipId ID of a MediaClip that should only be given when replacing the MediaClip file.
      *
      * @throws \InvalidArgumentException
      * @throws \BlueBillyWig\Exception\HTTPRequestException
      */
-    public function executeUploadAsync(string|\SplFileInfo $mediaClipPath, array $uploadData, ?int $mediaClipId = null): PromiseInterface
+    public function executeUploadAsync(string|\SplFileInfo $mediaClipPath, array $uploadData): PromiseInterface
     {
         if (!($mediaClipPath instanceof \SplFileInfo)) {
             $mediaClipPath = new \SplFileInfo(strval($mediaClipPath));
@@ -41,7 +40,7 @@ class MediaClipHelper extends Helper
         if (!$mediaClipPath->isFile()) {
             throw new \InvalidArgumentException("File {$mediaClipPath} is not a file or does not exist.");
         }
-        return Coroutine::of(function () use ($mediaClipPath, $uploadData, $mediaClipId) {
+        return Coroutine::of(function () use ($mediaClipPath, $uploadData) {
             if ($uploadData['chunks'] === 1) {
                 // PutObject command is performed instead of UploadPart, so we can directly return this promise
                 $response = (yield $this->performUpload($mediaClipPath, $uploadData['presignedUrls'][0]));
@@ -65,7 +64,7 @@ class MediaClipHelper extends Helper
                     "PartNumber" => $response->getRequest()->getQueryParam("partNumber")
                 ];
             }
-            $response = (yield $this->entity->completeUploadAsync($uploadData['key'], $uploadData['uploadId'], $parts, $mediaClipId));
+            $response = (yield $this->entity->completeUploadAsync($uploadData['key'], $uploadData['uploadId'], $parts));
             $response->assertIsOk();
             yield true;
         });
@@ -126,7 +125,7 @@ class MediaClipHelper extends Helper
                     yield 100;
                 }
             } elseif ($response->getStatusCode() === 200) {
-                $contents = $response->getXml();
+                $contents = $response->getDecodedBody();
                 $parts = $contents['Part'] ?? [];
                 if (!empty($parts['PartNumber'])) {
                     $uploadedPartsCount = 1;

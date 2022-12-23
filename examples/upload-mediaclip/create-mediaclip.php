@@ -12,16 +12,13 @@ $sdk = Sdk::withRPCTokenAuthentication($publication, $tokenId, $sharedSecret);
 
 $mediaClipPath = "/path/to/a/mediaclip.mp4";
 
-$response = $sdk->mediaclip->initializeUpload($mediaClipPath);
+$response = $sdk->mediaclip->create([
+    'title' => 'My MediaClip'
+]);
+$response->assertIsOk();
+$mediaClipId = $response->getDecodedBody()['id'];
+
+$response = $sdk->mediaclip->initializeUpload($mediaClipPath, $mediaClipId);
 $response->assertIsOk();
 $responseContent = $response->getDecodedBody();
-
-$uploadProgress = $sdk->mediaclip->helper->getUploadProgress($responseContent['listPartsUrl'], $responseContent['headObjectUrl'], $responseContent['chunks']);
-
-print("Mediaclip upload progress: $uploadProgress%");
-
 $sdk->mediaclip->helper->executeUpload($mediaClipPath, $responseContent);
-
-$uploadProgress = $sdk->mediaclip->helper->getUploadProgress($responseContent['listPartsUrl'], $responseContent['headObjectUrl'], $responseContent['chunks']);
-
-print("Mediaclip upload progress: $uploadProgress%");

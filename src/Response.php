@@ -131,7 +131,7 @@ class Response extends GuzzleHttpResponse
      * @throws \UnexpectedValueException
      * @throws \JsonException
      */
-    public function getJson(bool $associative = true): null|array|object
+    public function getJsonBody(bool $associative = true): null|array|object
     {
         $body = $this->getBody();
         if (!$body->isReadable()) {
@@ -150,7 +150,7 @@ class Response extends GuzzleHttpResponse
      * @throws \UnexpectedValueException
      * @throws \LibXMLError
      */
-    public function getXml(bool $associative = true): null|array|\SimpleXMLElement
+    public function getXmlBody(bool $associative = true): null|array|\SimpleXMLElement
     {
         $body = $this->getBody();
         if (!$body->isReadable()) {
@@ -169,5 +169,27 @@ class Response extends GuzzleHttpResponse
             return $xml;
         }
         return json_decode(json_encode($xml), true);
+    }
+
+    /**
+     * Get the decoded Response Body
+     * This function attempts to decode the body as JSON first and then as XML if that fails.
+     * 
+     * @param bool $associative When **TRUE**, returned objects will be converted into associative arrays.
+     *
+     * @throws \UnexpectedValueException
+     * @throws \RuntimeException
+     */
+    public function getDecodedBody(bool $associative = true): null|array|object
+    {
+        try {
+            return $this->getJsonBody($associative);
+        } catch (\JsonException) {
+            try {
+                return $this->getXmlBody($associative);
+            } catch (\LibXMLError) {
+                throw new \RuntimeException("Could not load body as JSON or XML.");
+            }
+        }
     }
 }
