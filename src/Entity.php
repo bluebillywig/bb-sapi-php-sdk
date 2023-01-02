@@ -11,7 +11,7 @@ use GuzzleHttp\Promise\PromiseInterface;
  * An Entity represents a resource on the Blue Billywig SAPI.
  * Entity class methods should only call one API method and should always return a Response object.
  * 
- * @property \BlueBillywig\Helper $helper
+ * @property-read \BlueBillywig\Helper $helper
  * @method Response get(int|string $id) Retrieve an Entity by its ID. @see getAsync
  * @method Response delete(int|string $id) Delete an Entity by its ID. @see deleteAsync
  * @method Response update(int|string $id, array $props) Update an Entity by its ID. @see updateAsync
@@ -96,10 +96,9 @@ abstract class Entity extends EntityRegister
     /**
      * Create an Entity by its ID and return a promise.
      *
-     * @param int|string $id The ID of the Entity.
      * @param array $props The properties of the Entity to create.
      */
-    public function createAsync(int|string $id, array $props): PromiseInterface
+    public function createAsync(array $props): PromiseInterface
     {
         throw new NotImplementedException("This method is not implemented.");
     }

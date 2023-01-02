@@ -7,8 +7,8 @@ namespace BlueBillywig;
  * Helper classes contain more complex logic than the Entity they are bound to.
  * They combine different functions on the Entity and may return other values than Response objects.
  *
- * @property Entity $entity
- * @property Sdk $sdk
+ * @property-read Entity $entity
+ * @property-read Sdk $sdk
  */
 abstract class Helper
 {
