@@ -136,10 +136,12 @@ class MediaClip extends Entity
      */
     public function createAsync(array $props, bool $softSave = false, ?string $lang = null): PromiseInterface
     {
-        $requestOptions = [RequestOptions::QUERY => [
-            "json" => json_encode($props),
-            "softsave" => $softSave
-        ]];
+        $requestOptions = [
+            RequestOptions::QUERY => [
+                "softsave" => $softSave
+            ],
+            RequestOptions::JSON => json_encode($props),
+        ];
         if (!empty($lang)) {
             $requestOptions[RequestOptions::QUERY]['lang'] = $lang;
         }
