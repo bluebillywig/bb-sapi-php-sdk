@@ -140,7 +140,7 @@ class MediaClip extends Entity
             RequestOptions::QUERY => [
                 "softsave" => $softSave
             ],
-            RequestOptions::JSON => json_encode($props),
+            RequestOptions::JSON => $props,
         ];
         if (!empty($lang)) {
             $requestOptions[RequestOptions::QUERY]['lang'] = $lang;
