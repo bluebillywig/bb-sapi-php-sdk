@@ -30,7 +30,7 @@ abstract class EntityRegister
         if (array_key_exists($name, $this->entities)) {
             return $this->entities[$name];
         }
-        return $this->$name;
+        throw new \InvalidArgumentException("Cannot get inaccessible or undefined property $name.");
     }
 
     /**

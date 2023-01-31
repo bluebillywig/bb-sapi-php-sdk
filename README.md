@@ -1,6 +1,6 @@
 # Blue Billywig SAPI PHP SDK
 
-This PHP SDK provides abstractions to interact with the Blue Billywig Simple API.
+This PHP SDK provides abstractions to interact with the Blue Billywig Server API.
 
 ## Installation
 
