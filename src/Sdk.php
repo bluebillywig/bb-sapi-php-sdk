@@ -105,10 +105,14 @@ class Sdk extends EntityRegister
      *
      * @param Request $request The Request that was sent.
      * @param ResponseInterface $response The ResponseInterface that needs to be parsed.
+     * @param string $parsedResponseCls The class to which the original Response should be parsed.
      */
-    public static function parseResponse(Request $request, ResponseInterface $response): Response
+    public static function parseResponse(Request $request, ResponseInterface $response, string $parsedResponseCls = Response::class): Response
     {
-        return new Response(
+        if (!is_a($parsedResponseCls, Response::class, true)) {
+            throw new \TypeError("Given response class is not a subtype of " . Response::class . ".");
+        }
+        return new $parsedResponseCls(
             $request,
             $response->getStatusCode(),
             $response->getHeaders(),
