@@ -2,7 +2,7 @@
 
 namespace BlueBillywig\Authentication;
 
-use BlueBillywig\Util\HOTP;
+use BlueBillywig\VMSRPC\HOTP;
 use Psr\Http\Message\RequestInterface;
 
 class RPCTokenAuthenticator extends Authenticator

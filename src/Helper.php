@@ -30,6 +30,6 @@ abstract class Helper
         } elseif ($name === 'sdk') {
             return $this->sdk;
         }
-        return $this->$name;
+        throw new \InvalidArgumentException("Cannot get inaccessible or undefined property $name.");
     }
 }

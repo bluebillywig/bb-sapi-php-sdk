@@ -30,7 +30,6 @@ class MediaClip extends Entity
      * @param ?int $mediaClipId ID of a MediaClip that should be given when adding or replacing the MediaClip file on an already created MediaClip.
      *
      * @throws \InvalidArgumentException
-     * @throws \UnexpectedValueException
      * @throws \BlueBillyWig\Exception\HTTPRequestException
      */
     public function initializeUploadAsync(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null): PromiseInterface
@@ -42,9 +41,6 @@ class MediaClip extends Entity
             throw new \InvalidArgumentException("File $mediaClipPath is not a file or does not exist.");
         }
         $contentType = mime_content_type(strval($mediaClipPath));
-        if (empty($contentType)) {
-            throw new \UnexpectedValueException("Could not retrieve content type from file $mediaClipPath.");
-        }
         $requestOptions = [RequestOptions::QUERY => [
             "filename" => $mediaClipPath->getFilename(),
             "filesize" => $mediaClipPath->getSize(),
@@ -92,13 +88,13 @@ class MediaClip extends Entity
      */
     public function completeUploadAsync(string $s3FileKey, string $s3UploadId, array $s3Parts): PromiseInterface
     {
-        $requestOptions = [RequestOptions::QUERY => [
-            "json" => json_encode([
+        $requestOptions = [
+            RequestOptions::JSON => [
                 "s3FileKey" => $s3FileKey,
                 "s3UploadId" => $s3UploadId,
                 "s3Parts" => $s3Parts
-            ]),
-        ]];
+            ],
+        ];
         return $this->sdk->sendRequestAsync(new Request(
             "PUT",
             "/sapi/mediaclip/0/completeUpload"
@@ -141,7 +137,7 @@ class MediaClip extends Entity
             RequestOptions::QUERY => [
                 "softsave" => $softSave
             ],
-            RequestOptions::JSON => $props,
+            RequestOptions::JSON => $props
         ];
         if (!empty($lang)) {
             $requestOptions[RequestOptions::QUERY]['lang'] = $lang;

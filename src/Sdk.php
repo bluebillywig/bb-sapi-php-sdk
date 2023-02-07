@@ -12,7 +12,6 @@ use GuzzleHttp\Handler\CurlHandler as GuzzleCurlHandler;
 use GuzzleHttp\Middleware as GuzzleMiddleware;
 use GuzzleHttp\Promise\Coroutine;
 use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\Psr7\Uri;
 use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 
@@ -22,7 +21,7 @@ use Psr\Http\Message\ResponseInterface;
 class Sdk extends EntityRegister
 {
     protected static array $entitiesCls = [
-        \BlueBillywig\Entities\MediaClip::class
+        [\BlueBillywig\Entities\MediaClip::class]
     ];
 
     private GuzzleClient $guzzleClient;
@@ -32,12 +31,13 @@ class Sdk extends EntityRegister
     {
         parent::__construct();
         $this->publication = $publication;
-        $handler = new GuzzleCurlHandler();
+        $handler = $options['handler'] ?? new GuzzleCurlHandler();
         $stack = GuzzleHandlerStack::create($handler);
         $stack->push(GuzzleMiddleware::mapRequest($authenticator));
+        $options['handler'] = $stack;
         $this->guzzleClient = new GuzzleClient($options + [
-            'handler' => $stack,
-            RequestOptions::VERIFY => CaBundle::getSystemCaRootBundlePath()
+            RequestOptions::VERIFY => CaBundle::getSystemCaRootBundlePath(),
+            'base_uri' => "https://{$this->publication}.bbvms.com"
         ]);
     }
 
@@ -65,21 +65,16 @@ class Sdk extends EntityRegister
      */
     public function sendRequestAsync(Request $request, array $options = []): PromiseInterface
     {
-        $requestUri = $request->getUri();
-        if (substr($requestUri, 0, 6) === '/sapi/') {
-            $uri = (new Uri("https://{$this->publication}.bbvms.com/"))->withPath(strval($request->getUri()));
-        } else {
-            $uri = $requestUri;
-        }
-
-        return Coroutine::of(function () use ($request, $uri, $options) {
+        return Coroutine::of(function () use ($request, $options) {
             try {
-                $response = (yield $this->guzzleClient->sendAsync($request->withUri($uri), $options));
+                $response = (yield $this->guzzleClient->sendAsync($request, $options));
                 yield static::parseResponse($request, $response);
             } catch (RequestException $e) {
                 $response = $e->getResponse();
                 if (empty($response)) {
+                    // @codeCoverageIgnoreStart
                     throw $e;
+                    // @codeCoverageIgnoreEnd
                 }
                 yield static::parseResponse($request, $response);
             }
@@ -105,10 +100,14 @@ class Sdk extends EntityRegister
      *
      * @param Request $request The Request that was sent.
      * @param ResponseInterface $response The ResponseInterface that needs to be parsed.
+     * @param string $parsedResponseCls The class to which the original Response should be parsed.
      */
-    public static function parseResponse(Request $request, ResponseInterface $response): Response
+    public static function parseResponse(Request $request, ResponseInterface $response, string $parsedResponseCls = Response::class): Response
     {
-        return new Response(
+        if (!is_a($parsedResponseCls, Response::class, true)) {
+            throw new \TypeError("Given response class is not a subtype of " . Response::class . ".");
+        }
+        return new $parsedResponseCls(
             $request,
             $response->getStatusCode(),
             $response->getHeaders(),

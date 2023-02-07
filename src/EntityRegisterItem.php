@@ -46,11 +46,16 @@ class EntityRegisterItem
     {
         if (!isset($this->instance)) {
             if (isset($this->factory)) {
-                $this->instance = ($this->factory)();
+                $this->instance = ($this->factory)($this->parent);
             } else {
                 $this->instance = new ($this->cls)($this->parent);
             }
         }
         return $this->instance;
+    }
+
+    public function getEntityClass(): string
+    {
+        return $this->getInstance()::class;
     }
 }

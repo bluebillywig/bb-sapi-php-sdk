@@ -10,12 +10,13 @@ use GuzzleHttp\Promise\PromiseInterface;
  * Base Entity class.
  * An Entity represents a resource on the Blue Billywig SAPI.
  * Entity class methods should only call one API method and should always return a Response object.
- * 
+ *
  * @property-read \BlueBillywig\Helper $helper
+ * @property-read \BlueBillywig\Sdk $sdk
  * @method Response get(int|string $id) Retrieve an Entity by its ID. @see getAsync
  * @method Response delete(int|string $id) Delete an Entity by its ID. @see deleteAsync
  * @method Response update(int|string $id, array $props) Update an Entity by its ID. @see updateAsync
- * @method Response create(int|string $id, array $props) Create an Entity by its ID. @see createAsync
+ * @method Response create(int|string $id, array $props) Create an Entity. @see createAsync
  */
 abstract class Entity extends EntityRegister
 {
@@ -63,6 +64,7 @@ abstract class Entity extends EntityRegister
     }
 
     /**
+     * @codeCoverageIgnore
      * Retrieve an Entity by its ID and return a promise.
      *
      * @param int|string $id The ID of the Entity.
@@ -73,6 +75,7 @@ abstract class Entity extends EntityRegister
     }
 
     /**
+     * @codeCoverageIgnore
      * Delete an Entity by its ID and return a promise.
      *
      * @param int|string $id The ID of the Entity.
@@ -83,6 +86,7 @@ abstract class Entity extends EntityRegister
     }
 
     /**
+     * @codeCoverageIgnore
      * Update an Entity by its ID and return a promise.
      *
      * @param int|string $id The ID of the Entity.
@@ -94,7 +98,8 @@ abstract class Entity extends EntityRegister
     }
 
     /**
-     * Create an Entity by its ID and return a promise.
+     * @codeCoverageIgnore
+     * Create an Entity and return a promise.
      *
      * @param array $props The properties of the Entity to create.
      */

@@ -1,0 +1,6 @@
+classes:
+  fail_lower_than: 100
+methods:
+  fail_lower_than: 100
+lines:
+  fail_lower_than: 100
