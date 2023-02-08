@@ -21,7 +21,7 @@ use Psr\Http\Message\ResponseInterface;
 class Sdk extends EntityRegister
 {
     protected static array $entitiesCls = [
-        [\BlueBillywig\Entities\MediaClip::class]
+        ['mediaclip' => \BlueBillywig\Entities\MediaClip::class]
     ];
 
     private GuzzleClient $guzzleClient;
