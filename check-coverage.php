@@ -12,7 +12,7 @@ try {
     $coverage = new Coverage();
     $coverage->check();
 } catch (CoverageException $ce) {
-    echo PHP_EOL . 'COVERAGE ERROR: ' . $ce->getMessage() . PHP_EOL . PHP_EOL;
+    echo '::error::COVERAGE ERROR: ' . $ce->getMessage() . PHP_EOL;
     exit(1);
 }
 echo 'Coverage amount is sufficient' . PHP_EOL;
