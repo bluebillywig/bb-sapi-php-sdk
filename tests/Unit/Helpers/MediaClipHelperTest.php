@@ -16,7 +16,18 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
 
     public static function _setUpBeforeClass()
     {
-        GuzzleTestServer::start();
+        // Code below is a workaround for the guzzle test server not being able to start in time
+        $maxTries = 5;
+        $tries = 0;
+        while (++$tries < $maxTries) {
+            try {
+                GuzzleTestServer::start();
+                return;
+            } catch (\RuntimeException $r) {
+                \sleep(1);
+            }
+        }
+        throw $r;
     }
 
     public static function _tearDownAfterClass()
