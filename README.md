@@ -4,7 +4,10 @@ This PHP SDK provides abstractions to interact with the Blue Billywig Server API
 
 ## Installation
 
-TODO
+Installation can be done through composer:
+```console
+composer require bluebillywig/bb-sapi-php-sdk
+```
 
 ## Usage
 

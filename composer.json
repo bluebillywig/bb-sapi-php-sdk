@@ -29,9 +29,17 @@
         "codeception/module-asserts": "^3.0",
         "codeception/module-phpbrowser": "^3.0",
         "guzzlehttp/test-server": "^0.1.0",
-        "symfony/yaml": "^5.4"
+        "symfony/yaml": "^5.4",
+        "squizlabs/php_codesniffer": "^3.7",
+        "staabm/annotate-pull-request-from-checkstyle": "^1.8"
     },
     "scripts": {
+        "lint": [
+            "phpcs"
+        ],
+        "lint:report-xml": [
+            "phpcs --report-full --report-checkstyle=./phpcs-report.xml"
+        ],
         "test:unit": [
             "codecept run Unit"
         ],
