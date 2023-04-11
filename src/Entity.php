@@ -22,7 +22,8 @@ abstract class Entity extends EntityRegister
 {
     use AutoAsyncToSyncCaller;
 
-    private EntityRegister $parent;
+    private readonly EntityRegister $parent;
+
     private Sdk $sdk;
     private Helper $helper;
 

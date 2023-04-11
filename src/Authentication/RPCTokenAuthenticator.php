@@ -7,8 +7,8 @@ use Psr\Http\Message\RequestInterface;
 
 class RPCTokenAuthenticator extends Authenticator
 {
-    private int $tokenId;
-    private string $sharedSecret;
+    private readonly int $tokenId;
+    private readonly string $sharedSecret;
 
     public function __construct(int $tokenId, string $sharedSecret)
     {

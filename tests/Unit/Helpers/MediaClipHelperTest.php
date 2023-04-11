@@ -7,8 +7,8 @@ use BlueBillywig\Entities\MediaClip;
 use BlueBillywig\Exception\HTTPClientErrorRequestException;
 use BlueBillywig\Exception\HTTPServerErrorRequestException;
 use BlueBillywig\Sdk;
+use BlueBillywig\Tests\Support\GuzzleTestServer;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
-use GuzzleHttp\Server\Server as GuzzleTestServer;
 
 class MediaClipHelperTest extends \Codeception\Test\Unit
 {
@@ -16,18 +16,7 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
 
     public static function _setUpBeforeClass()
     {
-        // Code below is a workaround for the guzzle test server not being able to start in time
-        $maxTries = 5;
-        $tries = 0;
-        while (++$tries < $maxTries) {
-            try {
-                GuzzleTestServer::start();
-                return;
-            } catch (\RuntimeException $r) {
-                \sleep(1);
-            }
-        }
-        throw $r;
+        GuzzleTestServer::start();
     }
 
     public static function _tearDownAfterClass()
@@ -42,27 +31,29 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
 
     public function testExecuteUploadSingleChunk()
     {
-        GuzzleTestServer::enqueue([
-            new GuzzleResponse(200)
-        ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        GuzzleTestServer::enqueue([new GuzzleResponse(200)]);
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $mediaClipPath = __DIR__ . "/../../Support/Data/blank.mp4";
+        $mediaClipPath = __DIR__ . '/../../Support/Data/blank.mp4';
 
-        $this->assertTrue($mediaClip->helper->executeUploadAsync(
-            $mediaClipPath,
-            [
-                'chunks' => 1,
-                'presignedUrls' => [
-                    [
-                        'presignedUrl' => GuzzleTestServer::$url . 'presigned-url',
-                        'chunkSize' => 1
-                    ]
-                ]
-            ]
-        )->wait());
+        $this->assertTrue(
+            $mediaClip->helper
+                ->executeUploadAsync($mediaClipPath, [
+                    'chunks' => 1,
+                    'presignedUrls' => [
+                        [
+                            'presignedUrl' =>
+                                GuzzleTestServer::$url . 'presigned-url',
+                            'chunkSize' => 1,
+                        ],
+                    ],
+                ])
+                ->wait()
+        );
 
         $requests = GuzzleTestServer::received();
         $this->assertNotEmpty($requests);
@@ -79,43 +70,61 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
             new GuzzleResponse(200, ['ETag' => ['some-etag-1']]),
             new GuzzleResponse(200, ['ETag' => ['some-etag-2']]),
             new GuzzleResponse(200, ['ETag' => ['some-etag-3']]),
-            new GuzzleResponse(200)
+            new GuzzleResponse(200),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $mediaClipPath = __DIR__ . "/../../Support/Data/blank.mp4";
+        $mediaClipPath = __DIR__ . '/../../Support/Data/blank.mp4';
 
-        $this->assertTrue($mediaClip->helper->executeUploadAsync(
-            $mediaClipPath,
-            [
-                'key' => '/prefix/blank.mp4',
-                'uploadId' => '12345',
-                'chunks' => 3,
-                'presignedUrls' => [
-                    [
-                        'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/1?partNumber=1',
-                        'chunkSize' => 1
+        $this->assertTrue(
+            $mediaClip->helper
+                ->executeUploadAsync($mediaClipPath, [
+                    'key' => '/prefix/blank.mp4',
+                    'uploadId' => '12345',
+                    'chunks' => 3,
+                    'presignedUrls' => [
+                        [
+                            'presignedUrl' =>
+                                GuzzleTestServer::$url .
+                                'presigned-url/1?partNumber=1',
+                            'chunkSize' => 1,
+                        ],
+                        [
+                            'presignedUrl' =>
+                                GuzzleTestServer::$url .
+                                'presigned-url/2?partNumber=2',
+                            'chunkSize' => 1,
+                        ],
+                        [
+                            'presignedUrl' =>
+                                GuzzleTestServer::$url .
+                                'presigned-url/3?partNumber=3',
+                            'chunkSize' => 1,
+                        ],
                     ],
-                    [
-                        'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/2?partNumber=2',
-                        'chunkSize' => 1
-                    ],
-                    [
-                        'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/3?partNumber=3',
-                        'chunkSize' => 1
-                    ]
-                ]
-            ]
-        )->wait());
+                ])
+                ->wait()
+        );
 
         $requests = GuzzleTestServer::received();
 
-        $assertChunkRequest = function (\Psr\Http\Message\RequestInterface $chunkRequest, int $partNumber) {
+        $assertChunkRequest = function (
+            \Psr\Http\Message\RequestInterface $chunkRequest,
+            int $partNumber
+        ) {
             $this->assertEquals('PUT', $chunkRequest->getMethod());
-            $this->assertEquals("/presigned-url/$partNumber", $chunkRequest->getUri()->getPath());
-            $this->assertEquals("partNumber=$partNumber", $chunkRequest->getUri()->getQuery());
+            $this->assertEquals(
+                "/presigned-url/$partNumber",
+                $chunkRequest->getUri()->getPath()
+            );
+            $this->assertEquals(
+                "partNumber=$partNumber",
+                $chunkRequest->getUri()->getQuery()
+            );
             $this->assertEquals(1, $chunkRequest->getBody()->getSize());
         };
 
@@ -131,40 +140,48 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
 
         $completeRequest = $requests[3];
         $this->assertEquals('PUT', $completeRequest->getMethod());
-        $this->assertEquals('/sapi/mediaclip/0/completeUpload', $completeRequest->getUri()->getPath());
-        $this->assertJsonStringEqualsJsonString(json_encode([
-            "s3FileKey" => "/prefix/blank.mp4",
-            "s3UploadId" => "12345",
-            "s3Parts" => [
-                [
-                    "ETag" => "some-etag-1",
-                    "PartNumber" => "1"
+        $this->assertEquals(
+            '/sapi/mediaclip/0/completeUpload',
+            $completeRequest->getUri()->getPath()
+        );
+        $this->assertJsonStringEqualsJsonString(
+            json_encode([
+                's3FileKey' => '/prefix/blank.mp4',
+                's3UploadId' => '12345',
+                's3Parts' => [
+                    [
+                        'ETag' => 'some-etag-1',
+                        'PartNumber' => '1',
+                    ],
+                    [
+                        'ETag' => 'some-etag-2',
+                        'PartNumber' => '2',
+                    ],
+                    [
+                        'ETag' => 'some-etag-3',
+                        'PartNumber' => '3',
+                    ],
                 ],
-                [
-
-                    "ETag" => "some-etag-2",
-                    "PartNumber" => "2"
-
-                ],
-                [
-                    "ETag" => "some-etag-3",
-                    "PartNumber" => "3"
-                ]
-            ]
-        ]), $completeRequest->getBody()->getContents());
+            ]),
+            $completeRequest->getBody()->getContents()
+        );
     }
 
     public function testExecuteUploadInvalidMediaClipPath()
     {
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator()));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator())
+        );
 
-        $mediaClipPath = "./path/to/a/non/existing/mediaclip/file";
+        $mediaClipPath = './path/to/a/non/existing/mediaclip/file';
 
         $this->assertThrowsWithMessage(
             \InvalidArgumentException::class,
             "File {$mediaClipPath} is not a file or does not exist.",
             function () use ($mediaClip, $mediaClipPath) {
-                $mediaClip->helper->executeUploadAsync($mediaClipPath, [])->wait();
+                $mediaClip->helper
+                    ->executeUploadAsync($mediaClipPath, [])
+                    ->wait();
             }
         );
     }
@@ -175,63 +192,83 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
             new GuzzleResponse(200, ['ETag' => ['some-etag-1']]),
             new GuzzleResponse(200, ['ETag' => ['some-etag-2']]),
             new GuzzleResponse(500),
-            new GuzzleResponse(200)
+            new GuzzleResponse(200),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $mediaClipPath = __DIR__ . "/../../Support/Data/blank.mp4";
+        $mediaClipPath = __DIR__ . '/../../Support/Data/blank.mp4';
 
-        $this->assertThrows(HTTPServerErrorRequestException::class, function () use ($mediaClip, $mediaClipPath) {
-            $mediaClip->helper->executeUploadAsync(
-                $mediaClipPath,
-                [
-                    'key' => '/prefix/blank.mp4',
-                    'uploadId' => '12345',
-                    'chunks' => 3,
-                    'presignedUrls' => [
-                        [
-                            'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/1?partNumber=1',
-                            'chunkSize' => 1
+        $this->assertThrows(
+            HTTPServerErrorRequestException::class,
+            function () use ($mediaClip, $mediaClipPath) {
+                $mediaClip->helper
+                    ->executeUploadAsync($mediaClipPath, [
+                        'key' => '/prefix/blank.mp4',
+                        'uploadId' => '12345',
+                        'chunks' => 3,
+                        'presignedUrls' => [
+                            [
+                                'presignedUrl' =>
+                                    GuzzleTestServer::$url .
+                                    'presigned-url/1?partNumber=1',
+                                'chunkSize' => 1,
+                            ],
+                            [
+                                'presignedUrl' =>
+                                    GuzzleTestServer::$url .
+                                    'presigned-url/2?partNumber=2',
+                                'chunkSize' => 1,
+                            ],
+                            [
+                                'presignedUrl' =>
+                                    GuzzleTestServer::$url .
+                                    'presigned-url/3?partNumber=3',
+                                'chunkSize' => 1,
+                            ],
                         ],
-                        [
-                            'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/2?partNumber=2',
-                            'chunkSize' => 1
-                        ],
-                        [
-                            'presignedUrl' => GuzzleTestServer::$url . 'presigned-url/3?partNumber=3',
-                            'chunkSize' => 1
-                        ]
-                    ]
-                ]
-            )->wait();
-        });
+                    ])
+                    ->wait();
+            }
+        );
 
         $requests = GuzzleTestServer::received();
 
         $this->assertEquals(4, count($requests));
         $abortRequest = $requests[3];
         $this->assertEquals('PUT', $abortRequest->getMethod());
-        $this->assertEquals('/sapi/mediaclip/0/abortUpload', $abortRequest->getUri()->getPath());
-        $this->assertEquals('s3filekey=/prefix/blank.mp4&s3uploadid=12345', urldecode($abortRequest->getUri()->getQuery()));
+        $this->assertEquals(
+            '/sapi/mediaclip/0/abortUpload',
+            $abortRequest->getUri()->getPath()
+        );
+        $this->assertEquals(
+            's3filekey=/prefix/blank.mp4&s3uploadid=12345',
+            urldecode($abortRequest->getUri()->getQuery())
+        );
     }
 
     public function testGetUploadProgressUploadNotStarted()
     {
         GuzzleTestServer::enqueue([
             new GuzzleResponse(404),
-            new GuzzleResponse(404)
+            new GuzzleResponse(404),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5
+            )
+            ->wait();
 
         $this->assertEquals(0, $uploadProgress);
 
@@ -239,27 +276,37 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         $this->assertEquals(2, count($requests));
         $listPartRequest = $requests[0];
         $this->assertEquals('GET', $listPartRequest->getMethod());
-        $this->assertEquals("/list-part", $listPartRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/list-part',
+            $listPartRequest->getUri()->getPath()
+        );
         $headObjectRequest = $requests[1];
         $this->assertEquals('HEAD', $headObjectRequest->getMethod());
-        $this->assertEquals("/head-object", $headObjectRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/head-object',
+            $headObjectRequest->getUri()->getPath()
+        );
     }
 
     public function testGetUploadProgressUploadCompleted()
     {
         GuzzleTestServer::enqueue([
             new GuzzleResponse(404),
-            new GuzzleResponse(200)
+            new GuzzleResponse(200),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5
+            )
+            ->wait();
 
         $this->assertEquals(100, $uploadProgress);
 
@@ -267,30 +314,44 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         $this->assertEquals(2, count($requests));
         $listPartRequest = $requests[0];
         $this->assertEquals('GET', $listPartRequest->getMethod());
-        $this->assertEquals("/list-part", $listPartRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/list-part',
+            $listPartRequest->getUri()->getPath()
+        );
         $headObjectRequest = $requests[1];
         $this->assertEquals('HEAD', $headObjectRequest->getMethod());
-        $this->assertEquals("/head-object", $headObjectRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/head-object',
+            $headObjectRequest->getUri()->getPath()
+        );
     }
 
     public function testGetUploadProgressUploadSinglePartFinished()
     {
         GuzzleTestServer::enqueue([
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    'PartNumber' => 1
-                ]
-            ]))
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [
+                        'PartNumber' => 1,
+                    ],
+                ])
+            ),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5
+            )
+            ->wait();
 
         $this->assertEquals(20, $uploadProgress);
 
@@ -298,27 +359,36 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         $this->assertEquals(1, count($requests));
         $listPartRequest = $requests[0];
         $this->assertEquals('GET', $listPartRequest->getMethod());
-        $this->assertEquals("/list-part", $listPartRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/list-part',
+            $listPartRequest->getUri()->getPath()
+        );
     }
 
     public function testGetUploadProgressUploadSomePartsFinished()
     {
         GuzzleTestServer::enqueue([
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    [], [], []
-                ]
-            ]))
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[], [], []],
+                ])
+            ),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5
+            )
+            ->wait();
 
         $this->assertEquals(60, $uploadProgress);
 
@@ -326,27 +396,36 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         $this->assertEquals(1, count($requests));
         $listPartRequest = $requests[0];
         $this->assertEquals('GET', $listPartRequest->getMethod());
-        $this->assertEquals("/list-part", $listPartRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/list-part',
+            $listPartRequest->getUri()->getPath()
+        );
     }
 
     public function testGetUploadProgressUploadAllPartsFinished()
     {
         GuzzleTestServer::enqueue([
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    [], [], [], [], []
-                ]
-            ]))
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[], [], [], [], []],
+                ])
+            ),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5
+            )
+            ->wait();
 
         $this->assertEquals(100, $uploadProgress);
 
@@ -354,26 +433,33 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         $this->assertEquals(1, count($requests));
         $listPartRequest = $requests[0];
         $this->assertEquals('GET', $listPartRequest->getMethod());
-        $this->assertEquals("/list-part", $listPartRequest->getUri()->getPath());
+        $this->assertEquals(
+            '/list-part',
+            $listPartRequest->getUri()->getPath()
+        );
     }
 
     public function testGetUploadProgressDelayedRequest()
     {
         GuzzleTestServer::enqueue([
             new GuzzleResponse(404),
-            new GuzzleResponse(200)
+            new GuzzleResponse(200),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
         $startTime = hrtime(true);
-        $uploadProgress = $mediaClip->helper->getUploadProgressAsync(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5,
-            2000
-        )->wait();
+        $uploadProgress = $mediaClip->helper
+            ->getUploadProgressAsync(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5,
+                2000
+            )
+            ->wait();
         $endTime = hrtime(true);
 
         $this->assertGreaterThanOrEqual(2000, ($endTime - $startTime) / 1e-6);
@@ -383,20 +469,25 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
 
     public function testGetUploadProgressIncorrectResponse()
     {
-        GuzzleTestServer::enqueue([
-            new GuzzleResponse(400)
-        ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        GuzzleTestServer::enqueue([new GuzzleResponse(400)]);
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
-        $this->assertThrows(HTTPClientErrorRequestException::class, function () use ($mediaClip) {
-            $mediaClip->helper->getUploadProgressAsync(
-                GuzzleTestServer::$url . 'list-part',
-                GuzzleTestServer::$url . 'head-object',
-                5
-            )->wait();
-        });
+        $this->assertThrows(
+            HTTPClientErrorRequestException::class,
+            function () use ($mediaClip) {
+                $mediaClip->helper
+                    ->getUploadProgressAsync(
+                        GuzzleTestServer::$url . 'list-part',
+                        GuzzleTestServer::$url . 'head-object',
+                        5
+                    )
+                    ->wait();
+            }
+        );
     }
 
     public function testUploadProgressGenerator()
@@ -404,46 +495,58 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         GuzzleTestServer::enqueue([
             new GuzzleResponse(404),
             new GuzzleResponse(404),
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    []
-                ]
-            ])),
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    [], []
-                ]
-            ])),
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    [], [], []
-                ]
-            ])),
-            new GuzzleResponse(200, [], json_encode([
-                'Part' => [
-                    [], [], [], []
-                ]
-            ])),
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[]],
+                ])
+            ),
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[], []],
+                ])
+            ),
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[], [], []],
+                ])
+            ),
+            new GuzzleResponse(
+                200,
+                [],
+                json_encode([
+                    'Part' => [[], [], [], []],
+                ])
+            ),
             new GuzzleResponse(404),
-            new GuzzleResponse(200)
+            new GuzzleResponse(200),
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), [
-            'base_uri' => GuzzleTestServer::$url
-        ]));
+        $mediaClip = new MediaClip(
+            new Sdk('my-publication', new EmptyAuthenticator(), [
+                'base_uri' => GuzzleTestServer::$url,
+            ])
+        );
 
         $startTime = hrtime(true);
-        $progress = iterator_to_array($mediaClip->helper->uploadProgressGenerator(
-            GuzzleTestServer::$url . 'list-part',
-            GuzzleTestServer::$url . 'head-object',
-            5,
-            500
-        ));
+        $progress = iterator_to_array(
+            $mediaClip->helper->uploadProgressGenerator(
+                GuzzleTestServer::$url . 'list-part',
+                GuzzleTestServer::$url . 'head-object',
+                5,
+                500
+            )
+        );
         $endTime = hrtime(true);
 
         $this->assertGreaterThanOrEqual(2500, ($endTime - $startTime) / 1e-6);
 
-        $this->assertEmpty(array_diff_assoc([
-            0, 20, 40, 60, 80, 100
-        ], $progress));
+        $this->assertEmpty(
+            array_diff_assoc([0, 20, 40, 60, 80, 100], $progress)
+        );
     }
 }

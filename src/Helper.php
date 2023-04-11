@@ -14,8 +14,8 @@ abstract class Helper
 {
     use AutoAsyncToSyncCaller;
 
-    private Entity $entity;
-    private Sdk $sdk;
+    private readonly Entity $entity;
+    private readonly Sdk $sdk;
 
     public function __construct(Entity $entity)
     {

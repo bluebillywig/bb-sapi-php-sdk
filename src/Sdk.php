@@ -20,12 +20,13 @@ use Psr\Http\Message\ResponseInterface;
  */
 class Sdk extends EntityRegister
 {
+    public readonly string $publication;
+
     protected static array $entitiesCls = [
         ['mediaclip' => \BlueBillywig\Entities\MediaClip::class]
     ];
 
-    private GuzzleClient $guzzleClient;
-    private string $publication;
+    private readonly GuzzleClient $guzzleClient;
 
     public function __construct(string $publication, Authenticator $authenticator, array $options = [])
     {
@@ -37,7 +38,7 @@ class Sdk extends EntityRegister
         $options['handler'] = $stack;
         $this->guzzleClient = new GuzzleClient($options + [
             RequestOptions::VERIFY => CaBundle::getSystemCaRootBundlePath(),
-            'base_uri' => "https://{$this->publication}.bbvms.com"
+            'base_uri' => $this->getBaseUri()
         ]);
     }
 
@@ -123,5 +124,9 @@ class Sdk extends EntityRegister
     protected function getSdk(): Sdk
     {
         return $this;
+    }
+
+    public function getBaseUri(): string {
+        return "https://{$this->publication}.bbvms.com";
     }
 }

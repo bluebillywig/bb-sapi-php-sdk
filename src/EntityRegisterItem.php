@@ -4,9 +4,10 @@ namespace BlueBillywig;
 
 class EntityRegisterItem
 {
-    private string $cls;
-    private EntityRegister $parent;
-    private ?\Closure $factory;
+    private readonly string $cls;
+    private readonly EntityRegister $parent;
+    private readonly ?\Closure $factory;
+
     private ?Entity $instance;
 
     public function __construct(string $cls, EntityRegister $parent, ?callable $factory = null)

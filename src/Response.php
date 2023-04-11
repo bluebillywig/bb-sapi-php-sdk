@@ -10,7 +10,7 @@ use GuzzleHttp\Psr7\Response as GuzzleHttpResponse;
 
 class Response extends GuzzleHttpResponse
 {
-    private Request $request;
+    private readonly Request $request;
 
     public function __construct(
         Request $request,
