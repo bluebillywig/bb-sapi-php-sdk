@@ -17,6 +17,8 @@ use GuzzleHttp\RequestOptions;
  * @property-read \BlueBillywig\Entities\MediaClip $entity
  * @method bool executeUpload(string|\SplFileInfo $mediaClipPath, array $uploadData) Execute the full flow for uploading a MediaClip file. @see executeUploadAsync
  * @method int|float getUploadProgress(string|Uri $listPartsUrl, string|Uri $headObjectUrl, int $partsCount, int $requestDelay = 0) Retrieve the progress of a MediaClip file upload. @see getUploadProgressAsync
+ * @method string getSourcePath(int|string $mediaClipId, bool $absolute = true) Retrieve the path to the source file of a MediaClip. @see getMediaClipSourcePathAsync
+ * @method string getAbsoluteVideoPath(string $relativeVideoPath) Parse a relative video path to an absolute one. @see getAbsoluteVideoPathAsync
  */
 class MediaClipHelper extends Helper
 {
@@ -172,5 +174,38 @@ class MediaClipHelper extends Helper
             yield $uploadProgress;
             $timePrevStart = $timeStart;
         }
+    }
+
+    /**
+     * Retrieve the path to the source file of a MediaClip and return a promise.
+     *
+     * @param int|string $mediaClipId The ID of the MediaClip.
+     * @param bool $absolute Whether the returned path should be absolute, defaults to true.
+     */
+    public function getSourcePathAsync(int|string $mediaClipId, bool $absolute = true): PromiseInterface {
+        return Coroutine::of(function () use ($mediaClipId, $absolute) {
+            $response = (yield $this->entity->getAsync($mediaClipId));
+            $response->assertIsOk();
+            $mediaClipData = $response->getDecodedBody();
+            $mediaClipSrc = $mediaClipData['src'];
+            if (!$absolute) {
+                return $mediaClipSrc;
+            }
+            yield $this->getAbsoluteVideoPathAsync($mediaClipSrc);
+        });
+    }
+
+    /**
+     * Parse a relative video path to an absolute one and return a promise.
+     *
+     * @param string $relativeVideoPath The relative video path to be parsed to an absolute one.
+     */
+    public function getAbsoluteVideoPathAsync(string $relativeVideoPath): PromiseInterface {
+        return Coroutine::of(function () use ($relativeVideoPath) {
+            $publicationData = (yield $this->sdk->getPublicationDataAsync());
+            $dmap = $publicationData["defaultMediaAssetPath"];
+            $relativeVideoPath = ltrim($relativeVideoPath, '/');
+            yield "$dmap/$relativeVideoPath";
+        });
     }
 }

@@ -17,16 +17,28 @@ use Psr\Http\Message\ResponseInterface;
 
 /**
  * @property-read \BlueBillywig\Entities\MediaClip $mediaclip
+ * @property-read \BlueBillywig\Entities\MediaClipList $mediacliplist
+ * @property-read \BlueBillywig\Entities\Thumbnail $thumbnail
+ * @property-read \BlueBillywig\Entities\Channel $channel
+ * @method Response sendRequest(Request $request, array $options = []) Send a synchronous request. @see sendRequestAsync
+ * @method array getPublicationData() Retrieve publication data. @see getPublicationDataAsync
  */
 class Sdk extends EntityRegister
 {
+    use AutoAsyncToSyncCaller;
+
     public readonly string $publication;
 
     protected static array $entitiesCls = [
-        ['mediaclip' => \BlueBillywig\Entities\MediaClip::class]
+        ['mediaclip' => \BlueBillywig\Entities\MediaClip::class],
+        ['mediacliplist' => \BlueBillywig\Entities\MediaClipList::class],
+        [\BlueBillywig\Entities\Thumbnail::class],
+        [\BlueBillywig\Entities\Channel::class]
     ];
 
     private readonly GuzzleClient $guzzleClient;
+
+    private ?array $publicationData;
 
     public function __construct(string $publication, Authenticator $authenticator, array $options = [])
     {
@@ -83,20 +95,6 @@ class Sdk extends EntityRegister
     }
 
     /**
-     * Send a synchronous request.
-     *
-     * @param Request $request The Request as an object to send.
-     * @param array $options An array of Request options. @see \GuzzleHttp\RequestOptions
-     *
-     * @throws \BlueBillyWig\Exception\HTTPRequestException
-     * @throws \GuzzleHttp\Exception\RequestException
-     */
-    public function sendRequest(Request $request, array $options = []): Response
-    {
-        return $this->sendRequestAsync($request, $options)->wait();
-    }
-
-    /**
      * Parse the ResponseInterface to a \BlueBillywig\Response object.
      *
      * @param Request $request The Request that was sent.
@@ -126,7 +124,24 @@ class Sdk extends EntityRegister
         return $this;
     }
 
+    /**
+     * Get the Base URI to the OVP.
+     */
     public function getBaseUri(): string {
         return "https://{$this->publication}.bbvms.com";
+    }
+
+    /**
+     * Retrieve publication data and return a promise.
+     */
+    public function getPublicationDataAsync(): PromiseInterface {
+        return Coroutine::of(function () {
+            if (!isset($this->publicationData)) {
+                $response = (yield $this->sendRequestAsync(new Request("GET", "/sapi/publication")));
+                $response->assertIsOk();
+                $this->publicationData = $response->getDecodedBody();
+            }
+            yield $this->publicationData;
+        });
     }
 }

@@ -5,14 +5,14 @@ namespace BlueBillywig\Helpers;
 use BlueBillywig\Helper;
 
 /**
- * @property-read \Bluebillywig\Entities\MediaClip $entity
+ * @property-read \Bluebillywig\Entities\Thumbnail $entity
  */
 class ThumbnailHelper extends Helper
 {
     /**
      * Parse a relative image path to an absolute image path on the OVP.
      *
-     * @param string $relativeImagePath The relative image path to parse to an absolute one.
+     * @param string $relativeImagePath The relative image path to be parsed to an absolute one.
      * @param int $width The width the image should have when retrieved through the absolute URL.
      * @param int $height The height the image should have when retrieved through the absolute URL.
      *

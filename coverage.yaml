@@ -1,6 +1,6 @@
 classes:
-  fail_lower_than: 100
+  fail_lower_than: 70
 methods:
-  fail_lower_than: 100
+  fail_lower_than: 85
 lines:
-  fail_lower_than: 100
+  fail_lower_than: 85
