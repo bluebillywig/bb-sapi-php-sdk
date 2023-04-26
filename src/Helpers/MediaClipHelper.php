@@ -182,16 +182,19 @@ class MediaClipHelper extends Helper
      * @param int|string $mediaClipId The ID of the MediaClip.
      * @param bool $absolute Whether the returned path should be absolute, defaults to true.
      */
-    public function getSourcePathAsync(int|string $mediaClipId, bool $absolute = true): PromiseInterface {
+    public function getSourcePathAsync(int|string $mediaClipId, bool $absolute = true): PromiseInterface
+    {
         return Coroutine::of(function () use ($mediaClipId, $absolute) {
             $response = (yield $this->entity->getAsync($mediaClipId));
             $response->assertIsOk();
             $mediaClipData = $response->getDecodedBody();
             $mediaClipSrc = $mediaClipData['src'];
             if (!$absolute) {
-                return $mediaClipSrc;
+                yield $mediaClipSrc;
+            } else {
+                $absoluteVideoPath = (yield $this->getAbsoluteVideoPathAsync($mediaClipSrc));
+                yield $absoluteVideoPath;
             }
-            yield $this->getAbsoluteVideoPathAsync($mediaClipSrc);
         });
     }
 
@@ -200,7 +203,8 @@ class MediaClipHelper extends Helper
      *
      * @param string $relativeVideoPath The relative video path to be parsed to an absolute one.
      */
-    public function getAbsoluteVideoPathAsync(string $relativeVideoPath): PromiseInterface {
+    public function getAbsoluteVideoPathAsync(string $relativeVideoPath): PromiseInterface
+    {
         return Coroutine::of(function () use ($relativeVideoPath) {
             $publicationData = (yield $this->sdk->getPublicationDataAsync());
             $dmap = $publicationData["defaultMediaAssetPath"];
