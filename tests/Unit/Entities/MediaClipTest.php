@@ -3,7 +3,6 @@
 namespace BlueBillywig\Tests\Unit\Entities;
 
 use BlueBillywig\Authentication\EmptyAuthenticator;
-use BlueBillywig\Entities\MediaClip;
 use BlueBillywig\Sdk;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
 
@@ -13,15 +12,15 @@ class MediaClipTest extends \Codeception\Test\Unit
 
     public function testInitializeUploadNonExistingFile()
     {
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator()));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator());
 
         $mediaClipPath = "./path/to/a/non/existing/mediaclip/file";
 
         $this->assertThrowsWithMessage(
             \InvalidArgumentException::class,
             "File $mediaClipPath is not a file or does not exist.",
-            function () use ($mediaClip, $mediaClipPath) {
-                $mediaClip->initializeUploadAsync($mediaClipPath)->wait();
+            function () use ($sdk, $mediaClipPath) {
+                $sdk->mediaclip->initializeUploadAsync($mediaClipPath)->wait();
             }
         );
     }
@@ -31,7 +30,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipPath = __DIR__ . "/../../Support/Data/blank.mp4";
 
@@ -41,7 +40,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "contenttype" => "video/mp4"
         ];
 
-        $mediaClip->initializeUploadAsync($mediaClipPath)->wait();
+        $sdk->mediaclip->initializeUploadAsync($mediaClipPath)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -56,7 +55,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipPath = __DIR__ . "/../../Support/Data/blank.mp4";
         $mediaClipId = 1;
@@ -68,7 +67,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "clipid" => $mediaClipId
         ];
 
-        $mediaClip->initializeUploadAsync($mediaClipPath, $mediaClipId)->wait();
+        $sdk->mediaclip->initializeUploadAsync($mediaClipPath, $mediaClipId)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -83,7 +82,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $s3FileKey = "/prefix/my-video.mp4";
         $s3UploadId = "12345";
@@ -93,7 +92,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "s3uploadid" => $s3UploadId
         ];
 
-        $mediaClip->abortUploadAsync($s3FileKey, $s3UploadId)->wait();
+        $sdk->mediaclip->abortUploadAsync($s3FileKey, $s3UploadId)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -108,7 +107,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $s3FileKey = "/prefix/my-video.mp4";
         $s3UploadId = "12345";
@@ -133,7 +132,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "s3Parts" => $s3Parts
         ];
 
-        $mediaClip->completeUploadAsync($s3FileKey, $s3UploadId, $s3Parts)->wait();
+        $sdk->mediaclip->completeUploadAsync($s3FileKey, $s3UploadId, $s3Parts)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -148,7 +147,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipId = 1;
 
@@ -156,7 +155,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "includejobs" => 1
         ];
 
-        $mediaClip->getAsync($mediaClipId)->wait();
+        $sdk->mediaclip->getAsync($mediaClipId)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -171,7 +170,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipId = 1;
         $language = "en";
@@ -181,7 +180,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "lang" => $language
         ];
 
-        $mediaClip->getAsync($mediaClipId, $language, false)->wait();
+        $sdk->mediaclip->getAsync($mediaClipId, $language, false)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -196,7 +195,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $expected = [
             "softsave" => 0,
@@ -205,7 +204,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "title" => "My Mediaclip"
         ];
 
-        $mediaClip->createAsync($props)->wait();
+        $sdk->mediaclip->createAsync($props)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -221,7 +220,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $language = "en";
 
@@ -233,7 +232,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "title" => "My Mediaclip"
         ];
 
-        $mediaClip->createAsync($props, true, $language)->wait();
+        $sdk->mediaclip->createAsync($props, true, $language)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -249,7 +248,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipId = 1;
 
@@ -260,7 +259,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "title" => "My Mediaclip"
         ];
 
-        $mediaClip->updateAsync($mediaClipId, $props)->wait();
+        $sdk->mediaclip->updateAsync($mediaClipId, $props)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);
@@ -276,7 +275,7 @@ class MediaClipTest extends \Codeception\Test\Unit
         $mockHandler = new \GuzzleHttp\Handler\MockHandler([
             new GuzzleResponse(200)
         ]);
-        $mediaClip = new MediaClip(new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]));
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $mediaClipId = 1;
         $language = "en";
@@ -289,7 +288,7 @@ class MediaClipTest extends \Codeception\Test\Unit
             "title" => "My Mediaclip"
         ];
 
-        $mediaClip->updateAsync($mediaClipId, $props, true, $language)->wait();
+        $sdk->mediaclip->updateAsync($mediaClipId, $props, true, $language)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
         parse_str($requestUri->getQuery(), $queryParams);

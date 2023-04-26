@@ -112,4 +112,22 @@ class SdkTest extends \Codeception\Test\Unit
             }
         );
     }
+
+    public function testGetPublicationData()
+    {
+        $expected = [
+            "name" => "my-publication"
+        ];
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler([
+            new GuzzleResponse(200, [], json_encode($expected))
+        ]);
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
+
+        $publicationData = $sdk->getPublicationDataAsync()->wait();
+
+        $requestUri = $mockHandler->getLastRequest()->getUri();
+
+        $this->assertEmpty(array_diff_assoc($expected, $publicationData));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/publication", strval($requestUri));
+    }
 }
