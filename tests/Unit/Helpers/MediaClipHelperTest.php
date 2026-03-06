@@ -613,6 +613,24 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         );
     }
 
+    public function testGetSourcePathMissingSrc()
+    {
+        GuzzleTestServer::enqueue([
+            new GuzzleResponse(200, [], json_encode(["title" => "some clip"]))
+        ]);
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator(), [
+            'base_uri' => GuzzleTestServer::$url,
+        ]);
+
+        $this->assertThrowsWithMessage(
+            \UnexpectedValueException::class,
+            "MediaClip response does not contain a 'src' field.",
+            function () use ($sdk) {
+                $sdk->mediaclip->helper->getSourcePathAsync(1)->wait();
+            }
+        );
+    }
+
     public function testGetSourcePathRelative()
     {
         $mediaClip = [
