@@ -525,6 +525,94 @@ class MediaClipHelperTest extends \Codeception\Test\Unit
         );
     }
 
+    public function testUploadProgressGeneratorMaxIterationsExceeded()
+    {
+        GuzzleTestServer::enqueue([
+            new GuzzleResponse(404),
+            new GuzzleResponse(404),
+            new GuzzleResponse(404),
+            new GuzzleResponse(404),
+        ]);
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator(), [
+            'base_uri' => GuzzleTestServer::$url,
+        ]);
+
+        $this->assertThrowsWithMessage(
+            \RuntimeException::class,
+            "Upload progress polling exceeded the maximum of 2 iterations.",
+            function () use ($sdk) {
+                iterator_to_array(
+                    $sdk->mediaclip->helper->uploadProgressGenerator(
+                        GuzzleTestServer::$url . 'list-part',
+                        GuzzleTestServer::$url . 'head-object',
+                        5,
+                        0,
+                        2
+                    )
+                );
+            }
+        );
+    }
+
+    public function testGetAbsoluteVideoPath()
+    {
+        $publicationData = [
+            "defaultMediaAssetPath" => "https://my-cfn.bluebillywig.com"
+        ];
+        GuzzleTestServer::enqueue([
+            new GuzzleResponse(200, [], json_encode($publicationData))
+        ]);
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator(), [
+            'base_uri' => GuzzleTestServer::$url,
+        ]);
+
+        $absolutePath = $sdk->mediaclip->helper->getAbsoluteVideoPathAsync('/some/video.mp4')->wait();
+
+        $this->assertEquals("https://my-cfn.bluebillywig.com/some/video.mp4", $absolutePath);
+    }
+
+    public function testExecuteUploadMissingChunksKey()
+    {
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator());
+        $mediaClipPath = __DIR__ . '/../../Support/Data/blank.mp4';
+
+        $this->assertThrowsWithMessage(
+            \InvalidArgumentException::class,
+            "uploadData must contain 'chunks' and 'presignedUrls' keys.",
+            function () use ($sdk, $mediaClipPath) {
+                $sdk->mediaclip->helper
+                    ->executeUploadAsync($mediaClipPath, [])
+                    ->wait();
+            }
+        );
+    }
+
+    public function testExecuteUploadMultiPartMissingKeyAndUploadId()
+    {
+        GuzzleTestServer::start();
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator(), [
+            'base_uri' => GuzzleTestServer::$url,
+        ]);
+        $mediaClipPath = __DIR__ . '/../../Support/Data/blank.mp4';
+
+        $this->assertThrowsWithMessage(
+            \InvalidArgumentException::class,
+            "uploadData for multi-part uploads must contain 'key' and 'uploadId' keys.",
+            function () use ($sdk, $mediaClipPath) {
+                $sdk->mediaclip->helper
+                    ->executeUploadAsync($mediaClipPath, [
+                        'chunks' => 3,
+                        'presignedUrls' => [
+                            ['presignedUrl' => GuzzleTestServer::$url . 'url1', 'chunkSize' => 1],
+                            ['presignedUrl' => GuzzleTestServer::$url . 'url2', 'chunkSize' => 1],
+                            ['presignedUrl' => GuzzleTestServer::$url . 'url3', 'chunkSize' => 1],
+                        ],
+                    ])
+                    ->wait();
+            }
+        );
+    }
+
     public function testGetSourcePathRelative()
     {
         $mediaClip = [
