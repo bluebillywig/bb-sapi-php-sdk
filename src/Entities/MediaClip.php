@@ -2,6 +2,11 @@
 
 namespace BlueBillywig\Entities;
 
+use BlueBillywig\Contracts\Creatable;
+use BlueBillywig\Contracts\Deletable;
+use BlueBillywig\Contracts\Gettable;
+use BlueBillywig\Contracts\Listable;
+use BlueBillywig\Contracts\Updatable;
 use BlueBillywig\Entity;
 use BlueBillywig\Request;
 use BlueBillywig\Response;
@@ -15,13 +20,60 @@ use GuzzleHttp\RequestOptions;
  * @method Response initializeUpload(string|\SplFileInfo $mediaClipPath, ?int $mediaClipId = null) Retrieve the presigned URLs for a MediaClip file upload. @see initializeUploadAsync
  * @method Response abortUpload(string $s3FileKey, string $s3UploadId) Abort the multipart upload of a MediaClip file. @see abortUploadAsync
  * @method Response completeUpload(string $s3FileKey, string $s3UploadId, array $s3Parts) Complete the multipart upload of a MediaClip file. @see completeUploadAsync
+ * @method Response list(int $limit = 15, int $offset = 0, string $sort = 'createddate desc') Retrieve a list of MediaClips. @see listAsync
  * @method Response get(int|string $id, ?string $lang = null, bool $includeJobs = true) Retrieve a MediaClip by its ID. @see getAsync
  * @method Response create(array $props, bool $softSave = false, ?string $lang = null) Create a MediaClip. @see createAsync
  * @method Response update(int|string $id, array $props, bool $softSave = false, ?string $lang = null) Update a MediaClip by its ID and return a promise. @see updateAsync
+ * @method Response delete(int|string $id, bool $purge = false) Delete a MediaClip by its ID. @see deleteAsync
  */
-class MediaClip extends Entity
+class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatable, Deletable
 {
     protected static string $helperCls = \BlueBillywig\Helpers\MediaClipHelper::class;
+
+    /**
+     * Retrieve a list of MediaClips and return a promise.
+     *
+     * @param int $limit Limit the amount of results, defaults to 15.
+     * @param int $offset Set the offset of the subset of results, defaults to 0.
+     * @param string $sort Sort the results, defaults to 'createddate desc'.
+     */
+    public function listAsync(
+        int $limit = 15,
+        int $offset = 0,
+        string $sort = 'createddate desc'
+    ): PromiseInterface {
+        $requestOptions = [
+            RequestOptions::QUERY => [
+                'limit' => $limit,
+                'offset' => $offset,
+                'sort' => $sort,
+            ],
+        ];
+        return $this->sdk->sendRequestAsync(
+            new Request('GET', '/sapi/mediaclip'),
+            $requestOptions
+        );
+    }
+
+    /**
+     * Delete a MediaClip by its ID and return a promise.
+     *
+     * @param int|string $id The ID of the MediaClip.
+     * @param bool $purge Whether to permanently purge the MediaClip instead of soft deleting, defaults to false.
+     *
+     * @throws \BlueBillyWig\Exception\HTTPRequestException
+     */
+    public function deleteAsync(int|string $id, bool $purge = false): PromiseInterface
+    {
+        $requestOptions = [];
+        if ($purge) {
+            $requestOptions[RequestOptions::QUERY] = ['purge' => true];
+        }
+        return $this->sdk->sendRequestAsync(
+            new Request('DELETE', "/sapi/mediaclip/$id"),
+            $requestOptions
+        );
+    }
 
     /**
      * Retrieve the presigned URLs for a MediaClip file upload and return a promise.
@@ -127,7 +179,21 @@ class MediaClip extends Entity
     /**
      * Create a MediaClip and return a promise.
      *
-     * @param array $props The properties of the MediaClip to create.
+     * @param array{
+     *     title?: string,
+     *     description?: string,
+     *     author?: string,
+     *     copyright?: string,
+     *     deeplink?: string,
+     *     status?: string,
+     *     usetype?: string,
+     *     fitmode?: string,
+     *     sourcetype?: string,
+     *     originalfilename?: string,
+     *     length?: int,
+     *     cat?: string,
+     *     playoutoverride?: string
+     * } $props The properties of the MediaClip to create.
      * @param bool $softSave Whether to save only after checking if the content of the MediaClip has changed after being fetched, defaults to false.
      * @param ?string $lang The language of the MediaClip.
      */
@@ -148,12 +214,26 @@ class MediaClip extends Entity
         ), $requestOptions);
     }
 
-    /*
+    /**
      * Update a MediaClip by its ID and return a promise.
      * Note that all the MediaClip metadata is updated, so first a retrieval should be done and all the metadata should be given, even the fields that have not changed.
      *
      * @param int|string $id The ID of the MediaClip.
-     * @param array $props The properties of the MediaClip to update.
+     * @param array{
+     *     title?: string,
+     *     description?: string,
+     *     author?: string,
+     *     copyright?: string,
+     *     deeplink?: string,
+     *     status?: string,
+     *     usetype?: string,
+     *     fitmode?: string,
+     *     sourcetype?: string,
+     *     originalfilename?: string,
+     *     length?: int,
+     *     cat?: string,
+     *     playoutoverride?: string
+     * } $props The properties of the MediaClip to update.
      * @param bool $softSave Whether to save only after checking if the content of the MediaClip has changed after being fetched, defaults to false.
      * @param ?string $lang The language of the MediaClip.
      */

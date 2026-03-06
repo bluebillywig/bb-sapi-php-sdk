@@ -4,19 +4,16 @@ namespace BlueBillywig;
 
 class EntityRegisterItem
 {
-    private readonly string $cls;
-    private readonly EntityRegister $parent;
     private readonly ?\Closure $factory;
 
     private ?Entity $instance;
 
-    public function __construct(string $cls, EntityRegister $parent, ?callable $factory = null)
-    {
-        $this->cls = $cls;
-        $this->parent = $parent;
-        if (!empty($factory)) {
-            $this->factory = \Closure::fromCallable($factory);
-        }
+    public function __construct(
+        private readonly string $cls,
+        private readonly EntityRegister $parent,
+        ?callable $factory = null
+    ) {
+        $this->factory = !empty($factory) ? \Closure::fromCallable($factory) : null;
     }
 
     /**

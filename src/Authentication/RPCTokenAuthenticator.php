@@ -7,13 +7,11 @@ use Psr\Http\Message\RequestInterface;
 
 class RPCTokenAuthenticator extends Authenticator
 {
-    private readonly int $tokenId;
-    private readonly string $sharedSecret;
-
-    public function __construct(int $tokenId, string $sharedSecret)
-    {
-        $this->tokenId = $tokenId;
-        $this->sharedSecret = $sharedSecret;
+    public function __construct(
+        private readonly int $tokenId,
+        private readonly string $sharedSecret,
+        private readonly int $tokenExpiration = 120
+    ) {
     }
 
     public function __invoke(RequestInterface $request): RequestInterface
@@ -21,12 +19,9 @@ class RPCTokenAuthenticator extends Authenticator
         return $request->withHeader("rpctoken", "{$this->tokenId}-{$this->calculateToken()}");
     }
 
-    private function calculateToken($expire = null): string
+    private function calculateToken(): string
     {
-        if (!is_numeric($expire)) {
-            $expire = 120;
-        }
-        $result = HOTP::generateByTime($this->sharedSecret, $expire, time());
+        $result = HOTP::generateByTime($this->sharedSecret, $this->tokenExpiration, time());
         return $result->toString();
     }
 }

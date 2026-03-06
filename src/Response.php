@@ -10,18 +10,15 @@ use GuzzleHttp\Psr7\Response as GuzzleHttpResponse;
 
 class Response extends GuzzleHttpResponse
 {
-    private readonly Request $request;
-
     public function __construct(
-        Request $request,
+        private readonly Request $request,
         int $status = 200,
         array $headers = [],
         $body = null,
         string $version = '1.1',
-        string $reason = null
+        ?string $reason = null
     ) {
         parent::__construct($status, $headers, $body, $version, $reason);
-        $this->request = $request;
     }
 
     /**
@@ -38,13 +35,15 @@ class Response extends GuzzleHttpResponse
     public function assertIsOk(): void
     {
         if (!$this->isOk()) {
+            $body = $this->getBody();
+            $responseBody = $body->getSize() > 0 ? $body->getContents() : null;
             switch ($this->getStatusCodeCategory()) {
                 case HTTPStatusCodeCategory::ClientError:
-                    throw new HTTPClientErrorRequestException($this->getReasonPhrase(), $this->getStatusCode());
+                    throw new HTTPClientErrorRequestException($this->getReasonPhrase(), $this->getStatusCode(), null, $responseBody);
                 case HTTPStatusCodeCategory::ServerError:
-                    throw new HTTPServerErrorRequestException($this->getReasonPhrase(), $this->getStatusCode());
+                    throw new HTTPServerErrorRequestException($this->getReasonPhrase(), $this->getStatusCode(), null, $responseBody);
                 default:
-                    throw new HTTPRequestException($this->getReasonPhrase(), $this->getStatusCode());
+                    throw new HTTPRequestException($this->getReasonPhrase(), $this->getStatusCode(), null, $responseBody);
             }
         }
     }
@@ -54,18 +53,15 @@ class Response extends GuzzleHttpResponse
      */
     public function getStatusCodeCategory(): HTTPStatusCodeCategory
     {
-        switch ($statusCode = $this->getStatusCode()) {
-            case ($statusCode >= 100 && $statusCode <= 199):
-                return HTTPStatusCodeCategory::Informational;
-            case ($statusCode >= 200 && $statusCode <= 299):
-                return HTTPStatusCodeCategory::Successful;
-            case ($statusCode >= 300 && $statusCode <= 399):
-                return HTTPStatusCodeCategory::Redirection;
-            case ($statusCode >= 400 && $statusCode <= 499):
-                return HTTPStatusCodeCategory::ClientError;
-            case ($statusCode >= 500 && $statusCode <= 599):
-                return HTTPStatusCodeCategory::ServerError;
-        }
+        $statusCode = $this->getStatusCode();
+        return match (true) {
+            $statusCode >= 100 && $statusCode <= 199 => HTTPStatusCodeCategory::Informational,
+            $statusCode >= 200 && $statusCode <= 299 => HTTPStatusCodeCategory::Successful,
+            $statusCode >= 300 && $statusCode <= 399 => HTTPStatusCodeCategory::Redirection,
+            $statusCode >= 400 && $statusCode <= 499 => HTTPStatusCodeCategory::ClientError,
+            $statusCode >= 500 && $statusCode <= 599 => HTTPStatusCodeCategory::ServerError,
+            default => throw new \UnexpectedValueException("Unexpected HTTP status code: {$statusCode}"),
+        };
     }
 
     /**
@@ -144,10 +140,13 @@ class Response extends GuzzleHttpResponse
             return null;
         }
         libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($body);
+        $xml = simplexml_load_string($body->getContents(), \SimpleXMLElement::class, LIBXML_NONET);
         if (empty($xml)) {
             $error = libxml_get_last_error();
-            throw new \UnexpectedValueException($error->message, $error->level);
+            throw new \UnexpectedValueException(
+                $error !== false ? $error->message : 'Failed to parse XML',
+                $error !== false ? $error->level : 0
+            );
         } elseif (!$associative) {
             return $xml;
         }
@@ -167,6 +166,7 @@ class Response extends GuzzleHttpResponse
         try {
             return $this->getJsonBody($associative);
         } catch (\JsonException) {
+            $this->getBody()->rewind();
             try {
                 return $this->getXmlBody($associative);
             } catch (\UnexpectedValueException) {

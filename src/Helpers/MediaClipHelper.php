@@ -43,6 +43,9 @@ class MediaClipHelper extends Helper
             throw new \InvalidArgumentException("File {$mediaClipPath} is not a file or does not exist.");
         }
         return Coroutine::of(function () use ($mediaClipPath, $uploadData) {
+            if (!isset($uploadData['chunks'], $uploadData['presignedUrls'])) {
+                throw new \InvalidArgumentException("uploadData must contain 'chunks' and 'presignedUrls' keys.");
+            }
             if ($uploadData['chunks'] === 1) {
                 // PutObject command is performed instead of UploadPart, so we can directly return this promise
                 $response = (yield $this->performUpload($mediaClipPath, $uploadData['presignedUrls'][0]));
@@ -51,6 +54,9 @@ class MediaClipHelper extends Helper
                 return;
             }
 
+            if (!isset($uploadData['key'], $uploadData['uploadId'])) {
+                throw new \InvalidArgumentException("uploadData for multi-part uploads must contain 'key' and 'uploadId' keys.");
+            }
             $responses = (yield $this->performMultiPartUpload($mediaClipPath, $uploadData['presignedUrls']));
             try {
                 Response::assertAllOk($responses);
@@ -158,13 +164,19 @@ class MediaClipHelper extends Helper
      * @param string|Uri $headObjectUrl The URL for retrieving metadata of the MediaClip file that was uploaded.
      * @param int $partsCount The total number of parts that are being uploaded.
      * @param int $pollInterval The minimum interval time in milliseconds between each upload progress poll, defaults to 2 seconds.
+     * @param int $maxIterations The maximum number of poll iterations before giving up. Defaults to 0 (unlimited).
      *
      * @throws \BlueBillywig\Exception\HTTPRequestException
+     * @throws \RuntimeException When maxIterations is exceeded.
      */
-    public function uploadProgressGenerator(string|Uri $listPartsUrl, string|Uri $headObjectUrl, int $partsCount, int $pollInterval = self::DEFAULT_UPLOAD_PROGRESS_POLL_INTERVAL): \Generator
+    public function uploadProgressGenerator(string|Uri $listPartsUrl, string|Uri $headObjectUrl, int $partsCount, int $pollInterval = self::DEFAULT_UPLOAD_PROGRESS_POLL_INTERVAL, int $maxIterations = 0): \Generator
     {
         $uploadProgress = $timeStart = $timePrevStart = 0;
+        $iterations = 0;
         while ($uploadProgress !== 100) {
+            if ($maxIterations > 0 && $iterations >= $maxIterations) {
+                throw new \RuntimeException("Upload progress polling exceeded the maximum of {$maxIterations} iterations.");
+            }
             $timeStart = floor(microtime(true) * 1000);
             $delayTime = $pollInterval - ($timeStart - $timePrevStart);
             if ($delayTime < 0) {
@@ -173,6 +185,7 @@ class MediaClipHelper extends Helper
             $uploadProgress = $this->getUploadProgress($listPartsUrl, $headObjectUrl, $partsCount, $delayTime);
             yield $uploadProgress;
             $timePrevStart = $timeStart;
+            $iterations++;
         }
     }
 
@@ -188,6 +201,9 @@ class MediaClipHelper extends Helper
             $response = (yield $this->entity->getAsync($mediaClipId));
             $response->assertIsOk();
             $mediaClipData = $response->getDecodedBody();
+            if (!isset($mediaClipData['src'])) {
+                throw new \UnexpectedValueException("MediaClip response does not contain a 'src' field.");
+            }
             $mediaClipSrc = $mediaClipData['src'];
             if (!$absolute) {
                 yield $mediaClipSrc;

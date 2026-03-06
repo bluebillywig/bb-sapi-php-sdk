@@ -7,7 +7,7 @@ use BlueBillywig\Sdk;
 use GuzzleHttp\Psr7\Response as GuzzleResponse;
 
 
-class ChannelTest extends \Codeception\Test\Unit
+class PlayoutTest extends \Codeception\Test\Unit
 {
     public function testList()
     {
@@ -16,8 +16,8 @@ class ChannelTest extends \Codeception\Test\Unit
         ]);
         $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
-        $limit = 15;
-        $offset = 1;
+        $limit = 10;
+        $offset = 5;
         $sort = "createddate asc";
 
         $expected = [
@@ -26,14 +26,13 @@ class ChannelTest extends \Codeception\Test\Unit
             "sort" => $sort
         ];
 
-        $sdk->channel->listAsync($limit, $offset, $sort)->wait();
+        $sdk->playout->listAsync($limit, $offset, $sort)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
-
         parse_str($requestUri->getQuery(), $queryParams);
 
         $this->assertEmpty(array_diff_assoc($expected, $queryParams));
-        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/channel?"));
+        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/player?"));
         $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -44,13 +43,13 @@ class ChannelTest extends \Codeception\Test\Unit
         ]);
         $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
-        $channelId = 1;
+        $playoutId = 1;
 
-        $sdk->channel->getAsync($channelId)->wait();
+        $sdk->playout->getAsync($playoutId)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/channel/$channelId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
         $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -62,15 +61,15 @@ class ChannelTest extends \Codeception\Test\Unit
         $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
         $props = [
-            "title" => "My Channel"
+            "title" => "My Playout"
         ];
 
-        $sdk->channel->createAsync($props)->wait();
+        $sdk->playout->createAsync($props)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
         $this->assertJsonStringEqualsJsonString(json_encode($props), $mockHandler->getLastRequest()->getBody()->getContents());
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/channel", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/player", strval($requestUri));
         $this->assertEquals("PUT", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -81,17 +80,17 @@ class ChannelTest extends \Codeception\Test\Unit
         ]);
         $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
-        $channelId = 1;
+        $playoutId = 1;
         $props = [
-            "title" => "My Updated Channel"
+            "title" => "My Updated Playout"
         ];
 
-        $sdk->channel->updateAsync($channelId, $props)->wait();
+        $sdk->playout->updateAsync($playoutId, $props)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
         $this->assertJsonStringEqualsJsonString(json_encode($props), $mockHandler->getLastRequest()->getBody()->getContents());
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/channel/$channelId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
         $this->assertEquals("PUT", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -102,13 +101,13 @@ class ChannelTest extends \Codeception\Test\Unit
         ]);
         $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
 
-        $channelId = 1;
+        $playoutId = 1;
 
-        $sdk->channel->deleteAsync($channelId)->wait();
+        $sdk->playout->deleteAsync($playoutId)->wait();
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/channel/$channelId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
         $this->assertEquals("DELETE", $mockHandler->getLastRequest()->getMethod());
     }
 }

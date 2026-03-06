@@ -9,7 +9,7 @@ class Request extends GuzzleHttpRequest
     /**
      * Retrieve the query parameters as a list.
      *
-     * @return array[]
+     * @return array<string, string|array>
      */
     public function getQueryParams(): array
     {
