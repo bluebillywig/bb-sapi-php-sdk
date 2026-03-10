@@ -44,7 +44,7 @@ class Playout extends Entity implements Listable, Gettable, Creatable, Updatable
             ],
         ];
         return $this->sdk->sendRequestAsync(
-            new Request('GET', '/sapi/player'),
+            new Request('GET', '/sapi/playout'),
             $requestOptions
         );
     }
@@ -57,7 +57,7 @@ class Playout extends Entity implements Listable, Gettable, Creatable, Updatable
     public function getAsync(int|string $id): PromiseInterface
     {
         return $this->sdk->sendRequestAsync(
-            new Request('GET', "/sapi/player/$id")
+            new Request('GET', "/sapi/playout/$id")
         );
     }
 
@@ -101,7 +101,7 @@ class Playout extends Entity implements Listable, Gettable, Creatable, Updatable
     {
         return $this->sdk->sendRequestAsync(new Request(
             "PUT",
-            "/sapi/player"
+            "/sapi/playout"
         ), [
             RequestOptions::JSON => $props
         ]);
@@ -148,7 +148,7 @@ class Playout extends Entity implements Listable, Gettable, Creatable, Updatable
     {
         return $this->sdk->sendRequestAsync(new Request(
             "PUT",
-            "/sapi/player/$id"
+            "/sapi/playout/$id"
         ), [
             RequestOptions::JSON => $props
         ]);
@@ -164,7 +164,7 @@ class Playout extends Entity implements Listable, Gettable, Creatable, Updatable
     public function deleteAsync(int|string $id): PromiseInterface
     {
         return $this->sdk->sendRequestAsync(
-            new Request('DELETE', "/sapi/player/$id")
+            new Request('DELETE', "/sapi/playout/$id")
         );
     }
 }

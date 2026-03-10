@@ -32,7 +32,7 @@ class PlayoutTest extends \Codeception\Test\Unit
         parse_str($requestUri->getQuery(), $queryParams);
 
         $this->assertEmpty(array_diff_assoc($expected, $queryParams));
-        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/player?"));
+        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/playout?"));
         $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -49,7 +49,7 @@ class PlayoutTest extends \Codeception\Test\Unit
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/playout/$playoutId", strval($requestUri));
         $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -69,7 +69,7 @@ class PlayoutTest extends \Codeception\Test\Unit
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
         $this->assertJsonStringEqualsJsonString(json_encode($props), $mockHandler->getLastRequest()->getBody()->getContents());
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/player", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/playout", strval($requestUri));
         $this->assertEquals("PUT", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -90,7 +90,7 @@ class PlayoutTest extends \Codeception\Test\Unit
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
         $this->assertJsonStringEqualsJsonString(json_encode($props), $mockHandler->getLastRequest()->getBody()->getContents());
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/playout/$playoutId", strval($requestUri));
         $this->assertEquals("PUT", $mockHandler->getLastRequest()->getMethod());
     }
 
@@ -107,7 +107,7 @@ class PlayoutTest extends \Codeception\Test\Unit
 
         $requestUri = $mockHandler->getLastRequest()->getUri();
 
-        $this->assertEquals("https://my-publication.bbvms.com/sapi/player/$playoutId", strval($requestUri));
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/playout/$playoutId", strval($requestUri));
         $this->assertEquals("DELETE", $mockHandler->getLastRequest()->getMethod());
     }
 }
