@@ -291,4 +291,31 @@ class ResponseTest extends \Codeception\Test\Unit
             $response->getDecodedBody();
         });
     }
+
+    public function testAssertIsNotOkResponseBody()
+    {
+        $request = new Request("GET", "https://www.bluebillywig.com/");
+        $responseBody = '{"error": "something went wrong"}';
+        $response = new Response($request, 400, [], Psr7Utils::streamFor($responseBody));
+
+        try {
+            $response->assertIsOk();
+            $this->fail('Expected HTTPClientErrorRequestException to be thrown');
+        } catch (HTTPClientErrorRequestException $e) {
+            $this->assertEquals($responseBody, $e->getResponseBody());
+        }
+    }
+
+    public function testAssertIsNotOkNullResponseBody()
+    {
+        $request = new Request("GET", "https://www.bluebillywig.com/");
+        $response = new Response($request, 500);
+
+        try {
+            $response->assertIsOk();
+            $this->fail('Expected HTTPServerErrorRequestException to be thrown');
+        } catch (HTTPServerErrorRequestException $e) {
+            $this->assertNull($e->getResponseBody());
+        }
+    }
 }

@@ -17,9 +17,12 @@ use Psr\Http\Message\ResponseInterface;
 
 /**
  * @property-read \BlueBillywig\Entities\MediaClip $mediaclip
- * @property-read \BlueBillywig\Entities\MediaClipList $mediacliplist
+ * @property-read \BlueBillywig\Entities\Playlist $mediacliplist
  * @property-read \BlueBillywig\Entities\Thumbnail $thumbnail
  * @property-read \BlueBillywig\Entities\Channel $channel
+ * @property-read \BlueBillywig\Entities\Playlist $playlist
+ * @property-read \BlueBillywig\Entities\Playout $playout
+ * @property-read \BlueBillywig\Entities\Subtitle $subtitle
  * @method Response sendRequest(Request $request, array $options = []) Send a synchronous request. @see sendRequestAsync
  * @method array getPublicationData() Retrieve publication data. @see getPublicationDataAsync
  */
@@ -31,9 +34,12 @@ class Sdk extends EntityRegister
 
     protected static array $entitiesCls = [
         ['mediaclip' => \BlueBillywig\Entities\MediaClip::class],
-        ['mediacliplist' => \BlueBillywig\Entities\MediaClipList::class],
+        ['mediacliplist' => \BlueBillywig\Entities\Playlist::class],
         [\BlueBillywig\Entities\Thumbnail::class],
-        [\BlueBillywig\Entities\Channel::class]
+        [\BlueBillywig\Entities\Channel::class],
+        [\BlueBillywig\Entities\Playlist::class],
+        [\BlueBillywig\Entities\Playout::class],
+        [\BlueBillywig\Entities\Subtitle::class]
     ];
 
     private readonly GuzzleClient $guzzleClient;

@@ -38,4 +38,13 @@ class AutoAsyncToSyncCallerTest extends \Codeception\Test\Unit
         $this->assertDoesNotThrow(\Error::class, [$mock, 'methodThatIs']);
         $this->assertDoesNotThrow(\Error::class, [$mock, 'method2ThatIs']);
     }
+
+    public function testCallNonExistentMethodThrowsBadMethodCallException()
+    {
+        $obj = new MyAutoAsyncToSyncClass();
+
+        $this->expectException(\BadMethodCallException::class);
+        $this->expectExceptionMessage('MyAutoAsyncToSyncClass::nonExistentMethod does not exist');
+        $obj->nonExistentMethod();
+    }
 }

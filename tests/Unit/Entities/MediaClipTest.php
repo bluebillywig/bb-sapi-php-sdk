@@ -10,6 +10,69 @@ class MediaClipTest extends \Codeception\Test\Unit
 {
     use \Codeception\AssertThrows;
 
+    public function testList()
+    {
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler([
+            new GuzzleResponse(200)
+        ]);
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
+
+        $limit = 15;
+        $offset = 1;
+        $sort = "createddate asc";
+
+        $expected = [
+            "limit" => $limit,
+            "offset" => $offset,
+            "sort" => $sort
+        ];
+
+        $sdk->mediaclip->listAsync($limit, $offset, $sort)->wait();
+
+        $requestUri = $mockHandler->getLastRequest()->getUri();
+        parse_str($requestUri->getQuery(), $queryParams);
+
+        $this->assertEmpty(array_diff_assoc($expected, $queryParams));
+        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/mediaclip?"));
+        $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
+    }
+
+    public function testDelete()
+    {
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler([
+            new GuzzleResponse(200)
+        ]);
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
+
+        $mediaClipId = 1;
+
+        $sdk->mediaclip->deleteAsync($mediaClipId)->wait();
+
+        $requestUri = $mockHandler->getLastRequest()->getUri();
+
+        $this->assertEquals("https://my-publication.bbvms.com/sapi/mediaclip/$mediaClipId", strval($requestUri));
+        $this->assertEquals("DELETE", $mockHandler->getLastRequest()->getMethod());
+    }
+
+    public function testDeleteWithPurge()
+    {
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler([
+            new GuzzleResponse(200)
+        ]);
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
+
+        $mediaClipId = 1;
+
+        $sdk->mediaclip->deleteAsync($mediaClipId, true)->wait();
+
+        $requestUri = $mockHandler->getLastRequest()->getUri();
+        parse_str($requestUri->getQuery(), $queryParams);
+
+        $this->assertEquals("1", $queryParams["purge"]);
+        $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/mediaclip/$mediaClipId?"));
+        $this->assertEquals("DELETE", $mockHandler->getLastRequest()->getMethod());
+    }
+
     public function testInitializeUploadNonExistingFile()
     {
         $sdk = new Sdk("my-publication", new EmptyAuthenticator());

@@ -14,12 +14,11 @@ abstract class Helper
 {
     use AutoAsyncToSyncCaller;
 
-    private readonly Entity $entity;
     private readonly Sdk $sdk;
 
-    public function __construct(Entity $entity)
-    {
-        $this->entity = $entity;
+    public function __construct(
+        private readonly Entity $entity
+    ) {
         $this->sdk = $entity->getSdk();
     }
 

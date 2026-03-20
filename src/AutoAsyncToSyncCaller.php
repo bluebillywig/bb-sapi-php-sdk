@@ -21,6 +21,9 @@ trait AutoAsyncToSyncCaller
                 $arguments
             )->wait();
         }
-        return call_user_func_array([$this, $name], $arguments);
+        if (method_exists($this, $name)) {
+            return call_user_func_array([$this, $name], $arguments);
+        }
+        throw new \BadMethodCallException(sprintf('Method %s::%s does not exist.', static::class, $name));
     }
 }
