@@ -23,6 +23,7 @@ use Psr\Http\Message\ResponseInterface;
  * @property-read \BlueBillywig\Entities\Playlist $playlist
  * @property-read \BlueBillywig\Entities\Playout $playout
  * @property-read \BlueBillywig\Entities\Subtitle $subtitle
+ * @property-read \BlueBillywig\Entities\Tus $tus
  * @method Response sendRequest(Request $request, array $options = []) Send a synchronous request. @see sendRequestAsync
  * @method array getPublicationData() Retrieve publication data. @see getPublicationDataAsync
  */
@@ -39,7 +40,8 @@ class Sdk extends EntityRegister
         [\BlueBillywig\Entities\Channel::class],
         [\BlueBillywig\Entities\Playlist::class],
         [\BlueBillywig\Entities\Playout::class],
-        [\BlueBillywig\Entities\Subtitle::class]
+        [\BlueBillywig\Entities\Subtitle::class],
+        ['tus' => \BlueBillywig\Entities\Tus::class],
     ];
 
     private readonly GuzzleClient $guzzleClient;
