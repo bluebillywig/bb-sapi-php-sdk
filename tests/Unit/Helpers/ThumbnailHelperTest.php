@@ -76,4 +76,48 @@ class ThumbnailHelperTest extends \Codeception\Test\Unit
             }
         );
     }
+
+    public function testGetMediaClipPosterPath()
+    {
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator());
+
+        $this->assertEquals(
+            'https://my-publication.bbvms.com/mediaclip/1234/spthumbnail/320/180.webp',
+            $sdk->thumbnail->helper->getMediaClipPosterPath(1234, 320, 180)
+        );
+    }
+
+    public function testGetMediaClipPosterPathDefaultsToTheServiceChoice()
+    {
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator());
+
+        $this->assertEquals(
+            'https://my-publication.bbvms.com/mediaclip/1234/spthumbnail/default/default.webp',
+            $sdk->thumbnail->helper->getMediaClipPosterPath(1234)
+        );
+    }
+
+    public function testGetMediaClipPosterPathRejectsNonNumericDimensions()
+    {
+        // A dimension is part of the path, so anything that is not a plain number
+        // falls back to 'default' rather than entering the URL.
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator());
+
+        $this->assertEquals(
+            'https://my-publication.bbvms.com/mediaclip/1234/spthumbnail/default/default.webp',
+            $sdk->thumbnail->helper->getMediaClipPosterPath(1234, '320/../../etc', 'auto')
+        );
+    }
+
+    public function testGetMediaClipPosterPathCarriesAnRpcTokenForDraftClips()
+    {
+        $sdk = new Sdk('my-publication', new EmptyAuthenticator());
+
+        $this->assertEquals(
+            'https://my-publication.bbvms.com/mediaclip/1234/spthumbnail/default/default.webp'
+                . '?useSession=true&rpctoken=12-345678',
+            $sdk->thumbnail->helper->getMediaClipPosterPath(1234, 'default', 'default', '12-345678')
+        );
+    }
+
 }

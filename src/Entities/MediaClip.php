@@ -9,6 +9,7 @@ use BlueBillywig\Contracts\Listable;
 use BlueBillywig\Contracts\Updatable;
 use BlueBillywig\Entity;
 use BlueBillywig\Request;
+use BlueBillywig\Search\FilterSet;
 use BlueBillywig\Response;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\RequestOptions;
@@ -29,6 +30,56 @@ use GuzzleHttp\RequestOptions;
 class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatable, Deletable
 {
     protected static string $helperCls = \BlueBillywig\Helpers\MediaClipHelper::class;
+
+    /**
+     * Search media clips using a filterset.
+     *
+     * The filtered counterpart to {@see listAsync()}, which can only page and
+     * sort. A filterset is the same structure the OVP builds in its filter UI,
+     * so a search can be moved between the OVP, the API and this SDK unchanged.
+     *
+     *     $filterSet = FilterSet::create()
+     *         ->where('status', FilterOperator::Is, 'published')
+     *         ->where('title', FilterOperator::Contains, 'koert');
+     *
+     *     $sdk->mediaclip->search($filterSet);
+     *
+     * NOTE on the encoding: the compiled query goes out as `fq[0]=`. SAPI
+     * ignores `fq[][0]=` — the shape `http_build_query(['fq[]' => [...]])`
+     * produces — and answers HTTP 200 with neither `numfound` nor `items`, which
+     * is indistinguishable from an empty result. Passing `'fq' => [...]` to the
+     * query options is what produces the accepted form.
+     *
+     * @param FilterSet $filterSet The conditions; groups are AND-ed, filters within a group OR-ed.
+     * @param int $limit
+     * @param int $offset
+     * @param string $sort
+     * @param string $query Free-text query; '*' matches everything.
+     */
+    public function searchAsync(
+        FilterSet $filterSet,
+        int $limit = 15,
+        int $offset = 0,
+        string $sort = 'createddate desc',
+        string $query = '*'
+    ): PromiseInterface {
+        $queryOptions = [
+            'q' => $query,
+            'limit' => $limit,
+            'offset' => $offset,
+            'sort' => $sort,
+        ];
+
+        $solrQuery = $filterSet->toSolrQuery();
+        if ($solrQuery !== '') {
+            $queryOptions['fq'] = [$solrQuery];
+        }
+
+        return $this->sdk->sendRequestAsync(
+            new Request('GET', '/sapi/mediaclip'),
+            [RequestOptions::QUERY => $queryOptions]
+        );
+    }
 
     /**
      * Retrieve a list of MediaClips and return a promise.
