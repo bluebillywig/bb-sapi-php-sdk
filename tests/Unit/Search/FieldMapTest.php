@@ -20,6 +20,14 @@ class FieldMapTest extends \Codeception\Test\Unit
         $this->assertEquals('title_cistr', FieldMap::resolve('title'));
     }
 
+    public function testTheWholeMapIsAvailableForIntrospection()
+    {
+        $map = FieldMap::all();
+
+        $this->assertArrayHasKey('status', $map);
+        $this->assertEquals('statusSort', $map['status']);
+    }
+
     public function testAnUnknownFieldIsPassedThroughUntouched()
     {
         // Lets a caller use a raw Solr field name the map does not cover.

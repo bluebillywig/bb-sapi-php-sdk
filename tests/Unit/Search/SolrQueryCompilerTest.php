@@ -224,4 +224,156 @@ class SolrQueryCompilerTest extends \Codeception\Test\Unit
 
         $this->assertEquals('(statusSort:"published")', $filterSet->toSolrQuery());
     }
+
+    public function testNegatedEqualityOperators()
+    {
+        $this->assertEquals(
+            '(( *:* -statusSort:"published"))',
+            FilterSet::create()->where('status', FilterOperator::IsNot, 'published')->toSolrQuery()
+        );
+        $this->assertEquals(
+            '(( *:* -statusSort:"published") OR ( *:* -statusSort:"draft"))',
+            FilterSet::create()->where('status', FilterOperator::IsNotAnyOf, ['published', 'draft'])->toSolrQuery()
+        );
+    }
+
+    public function testContainsAnyOfIsAnExactMatchPerValue()
+    {
+        // Unlike `contains`, it adds no wildcard form.
+        $this->assertEquals(
+            '(catSort:"news" OR catSort:"sport")',
+            FilterSet::create()->where('cat', FilterOperator::ContainsAnyOf, ['news', 'sport'])->toSolrQuery()
+        );
+    }
+
+    public function testDoesNotContainExcludesASubstringOnASingleValuedField()
+    {
+        $this->assertEquals(
+            '(( *:* -title_cistr:*holiday*))',
+            FilterSet::create()->where('title', FilterOperator::DoesNotContain, 'holiday')->toSolrQuery()
+        );
+    }
+
+    public function testDoesNotContainExcludesAnExactValueOnAMultiValuedField()
+    {
+        // Multi-valued fields hold discrete terms, so a substring test is wrong.
+        $this->assertEquals(
+            '(( *:* -tags_strmulti:"news"))',
+            FilterSet::create()->where('tags_strmulti', FilterOperator::DoesNotContain, 'news')->toSolrQuery()
+        );
+    }
+
+    public function testDoesNotContainAnyOfRequiresEveryExclusionToHold()
+    {
+        $this->assertEquals(
+            '(( *:* -title_cistr:*a*) AND ( *:* -title_cistr:*b*))',
+            FilterSet::create()->where('title', FilterOperator::DoesNotContainAnyOf, ['a', 'b'])->toSolrQuery()
+        );
+    }
+
+    public function testUpperBoundRanges()
+    {
+        $this->assertEquals(
+            '(createddate:[ * TO 2026-01-01])',
+            FilterSet::create()->where('createddate', FilterOperator::IsBefore, '2026-01-01')->toSolrQuery()
+        );
+        $this->assertEquals(
+            '(views_int:[ * TO 100])',
+            FilterSet::create()->where('views', FilterOperator::IsSmallerThan, '100')->toSolrQuery()
+        );
+    }
+
+    public function testLowerBoundRange()
+    {
+        $this->assertEquals(
+            '(views_int:[100 TO *])',
+            FilterSet::create()->where('views', FilterOperator::IsGreaterThan, '100')->toSolrQuery()
+        );
+    }
+
+    public function testNegatedRelativeRange()
+    {
+        $this->assertEquals(
+            '((*:* -createddate:[NOW-7DAY TO NOW]))',
+            FilterSet::create()->where('createddate', FilterOperator::IsNotInTheLast, '7DAY')->toSolrQuery()
+        );
+    }
+
+    public function testAValueThatAlreadyCarriesRangeSyntaxIsPassedThroughUnquoted()
+    {
+        $this->assertEquals(
+            '(views_int:[1 TO 10])',
+            FilterSet::create()->where('views', FilterOperator::Is, '[1 TO 10]')->toSolrQuery()
+        );
+    }
+
+    public function testAPlusIsTreatedAsASpaceRatherThanAnOperator()
+    {
+        $this->assertEquals(
+            '(statusSort:"a b")',
+            FilterSet::create()->where('status', FilterOperator::Is, 'a+b')->toSolrQuery()
+        );
+    }
+
+    public function testSeveralEntityTypesAreOredTogether()
+    {
+        $this->assertEquals(
+            '(((typeSort:Project OR typeSort:MediaClip OR typeSort:MediaClipList)'
+                . ' AND (statusSort:"published")))',
+            FilterSet::create()
+                ->where('status', FilterOperator::Is, 'published', 'search')
+                ->toSolrQuery()
+        );
+    }
+
+    public function testAnUnknownEntityTypeIsUsedVerbatim()
+    {
+        $this->assertEquals(
+            '((typeSort:Shorts AND (statusSort:"published")))',
+            FilterSet::create()
+                ->where('status', FilterOperator::Is, 'published', 'Shorts')
+                ->toSolrQuery()
+        );
+    }
+
+    public function testAGroupWithOnlyEmptyFiltersIsDropped()
+    {
+        $filterSet = FilterSet::create()
+            ->andGroup(new Filter('status', FilterOperator::Is, ''))
+            ->where('mediatype', FilterOperator::Is, 'video');
+
+        $this->assertEquals('(mediatypeSort:"video")', $filterSet->toSolrQuery());
+    }
+
+    public function testAFilterSetCanBeBuiltFromABareListOfGroups()
+    {
+        $filterSet = FilterSet::fromArray([
+            ['filters' => [['field' => 'status', 'operator' => 'is', 'value' => 'published']]],
+        ]);
+
+        $this->assertEquals('(statusSort:"published")', $filterSet->toSolrQuery());
+    }
+
+    public function testAFilterFromArrayKeepsItsEntityType()
+    {
+        $filter = Filter::fromArray([
+            'field' => 'status',
+            'operator' => 'is',
+            'value' => 'published',
+            'type' => 'mediaclip',
+        ]);
+
+        $this->assertEquals('mediaclip', $filter->type);
+        $this->assertEquals(['published'], $filter->values());
+        $this->assertFalse($filter->isEmpty());
+    }
+
+    public function testAFilterFromArrayWithoutAValueOrTypeIsEmpty()
+    {
+        $filter = Filter::fromArray(['field' => 'status', 'operator' => 'is', 'type' => '']);
+
+        $this->assertNull($filter->type);
+        $this->assertTrue($filter->isEmpty());
+    }
+
 }

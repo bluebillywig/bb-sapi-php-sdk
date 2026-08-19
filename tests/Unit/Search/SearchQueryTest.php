@@ -69,4 +69,21 @@ class SearchQueryTest extends \Codeception\Test\Unit
         $this->assertEquals('100', $parsed['offset']);
         $this->assertEquals('title asc', $parsed['sort']);
     }
+
+    public function testItStringifiesToItsPath()
+    {
+        $query = new SearchQuery('mediaclip');
+
+        $this->assertEquals($query->toPath(), (string)$query);
+    }
+
+    public function testAFreeTextQueryIsPassedThrough()
+    {
+        $query = (new SearchQuery('mediaclip', null, 15, 0, null, 'holiday'))->toPath();
+        parse_str((string)parse_url($query, PHP_URL_QUERY), $parsed);
+
+        $this->assertEquals('holiday', $parsed['q']);
+        $this->assertArrayNotHasKey('sort', $parsed);
+    }
+
 }
