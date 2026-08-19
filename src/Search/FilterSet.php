@@ -13,6 +13,8 @@ namespace BlueBillywig\Search;
  *         ->where('status', FilterOperator::Is, 'published')
  *         ->where('title', FilterOperator::Contains, 'koert');
  *
+ *     $sdk->mediaclip->search($filterSet);
+ *
  * or hand back a filterset the OVP produced:
  *
  *     $filterSet = FilterSet::fromArray($json);
@@ -69,15 +71,65 @@ final class FilterSet
     }
 
     /**
-     * Compile to the Solr query SAPI expects. Empty when nothing is filtered.
+     * The wire format: the structure SAPI's `filterset` parameter expects.
+     *
+     * Deliberately NOT compiled to a Solr query here. SAPI compiles filtersets
+     * itself — `/sapi/mediaclip?filterset={json}` — using the same
+     * SearchRequestHelper that serves the OVP, so compiling client-side would be
+     * a second implementation of semantics that already exist on the server, free
+     * to drift from them. And a drifted filter does not fail loudly: SAPI answers
+     * HTTP 200 with an empty envelope, which reads as "no results".
+     *
+     * Verified equivalent against a live publication: `filterset` and a
+     * hand-compiled `fq` return identical counts for every operator tried.
+     *
+     * @return list<array{filters: list<array<string, mixed>>}>
      */
-    public function toSolrQuery(): string
+    public function toArray(): array
     {
-        return SolrQueryCompiler::compile($this);
+        return array_values(array_map(
+            static fn(FilterGroup $group): array => [
+                'filters' => array_values(array_map(
+                    static fn(Filter $filter): array => array_filter(
+                        [
+                            'field' => $filter->field,
+                            'operator' => $filter->operator->value,
+                            'value' => $filter->value,
+                            'type' => $filter->type,
+                        ],
+                        static fn($value): bool => $value !== null
+                    ),
+                    array_values(array_filter(
+                        $group->filters,
+                        static fn(Filter $filter): bool => !$filter->isEmpty()
+                    ))
+                )),
+            ],
+            array_values(array_filter(
+                $this->groups,
+                static fn(FilterGroup $group): bool => self::groupHasFilters($group)
+            ))
+        ));
+    }
+
+    public function toJson(): string
+    {
+        return (string) json_encode($this->toArray());
     }
 
     public function isEmpty(): bool
     {
-        return $this->toSolrQuery() === '';
+        return $this->toArray() === [];
+    }
+
+    private static function groupHasFilters(FilterGroup $group): bool
+    {
+        foreach ($group->filters as $filter) {
+            if (!$filter->isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

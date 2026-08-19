@@ -35,8 +35,8 @@ class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatab
      * Search media clips using a filterset.
      *
      * The filtered counterpart to {@see listAsync()}, which can only page and
-     * sort. A filterset is the same structure the OVP builds in its filter UI,
-     * so a search can be moved between the OVP, the API and this SDK unchanged.
+     * sort. A filterset is the same structure the OVP builds in its filter UI, so
+     * a search moves between the OVP, the API and this SDK unchanged.
      *
      *     $filterSet = FilterSet::create()
      *         ->where('status', FilterOperator::Is, 'published')
@@ -44,24 +44,30 @@ class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatab
      *
      *     $sdk->mediaclip->search($filterSet);
      *
-     * NOTE on the encoding: the compiled query goes out as `fq[0]=`. SAPI
-     * ignores `fq[][0]=` — the shape `http_build_query(['fq[]' => [...]])`
-     * produces — and answers HTTP 200 with neither `numfound` nor `items`, which
-     * is indistinguishable from an empty result. Passing `'fq' => [...]` to the
-     * query options is what produces the accepted form.
+     * The filterset goes over the wire as JSON and SAPI compiles it, exactly as
+     * the OVP does it. It is deliberately not compiled to a Solr query here:
+     * that would be a second implementation of semantics the server already owns,
+     * and a drifted filter fails silently — SAPI answers HTTP 200 with an empty
+     * envelope, indistinguishable from "no results".
      *
-     * @param FilterSet $filterSet The conditions; groups are AND-ed, filters within a group OR-ed.
+     * @param FilterSet $filterSet Groups are AND-ed, filters within a group OR-ed.
      * @param int $limit
      * @param int $offset
      * @param string $sort
      * @param string $query Free-text query; '*' matches everything.
+     * @param list<string> $filterQueries Raw Solr filter queries, for the rare
+     *        case a filterset cannot express something. NOTE the encoding: these
+     *        go out as `fq[0]=`. SAPI ignores `fq[][0]=` — the shape
+     *        `http_build_query(['fq[]' => [...]])` produces — and ignores a plain
+     *        `fq=`, in both cases silently.
      */
     public function searchAsync(
         FilterSet $filterSet,
         int $limit = 15,
         int $offset = 0,
         string $sort = 'createddate desc',
-        string $query = '*'
+        string $query = '*',
+        array $filterQueries = []
     ): PromiseInterface {
         $queryOptions = [
             'q' => $query,
@@ -70,9 +76,13 @@ class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatab
             'sort' => $sort,
         ];
 
-        $solrQuery = $filterSet->toSolrQuery();
-        if ($solrQuery !== '') {
-            $queryOptions['fq'] = [$solrQuery];
+        if (!$filterSet->isEmpty()) {
+            $queryOptions['filterset'] = $filterSet->toJson();
+        }
+
+        if ($filterQueries !== []) {
+            // 'fq', never 'fq[]' — see the note above.
+            $queryOptions['fq'] = array_values($filterQueries);
         }
 
         return $this->sdk->sendRequestAsync(

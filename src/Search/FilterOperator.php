@@ -30,15 +30,6 @@ enum FilterOperator: string
     case IsNotInTheLast = 'isNotInTheLast';
 
     /**
-     * Operators whose multiple values must ALL match, so their statements are
-     * joined with AND rather than OR.
-     */
-    public function joinsWithAnd(): bool
-    {
-        return $this === self::ContainsAllOf || $this === self::DoesNotContainAnyOf;
-    }
-
-    /**
      * Operators that ignore any supplied value — they test presence only, so an
      * empty value must not cause the filter to be skipped.
      */

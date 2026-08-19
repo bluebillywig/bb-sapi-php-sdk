@@ -382,9 +382,12 @@ class MediaClipTest extends \Codeception\Test\Unit
         $this->assertEquals('25', $queryParams['limit']);
         $this->assertEquals('50', $queryParams['offset']);
         $this->assertEquals('title asc', $queryParams['sort']);
-        // Indexed, not `fq[][0]=` — SAPI ignores that form and still answers 200.
-        $this->assertEquals(['(statusSort:"published")'], $queryParams['fq']);
-        $this->assertStringContainsString('fq%5B0%5D=', strval($requestUri));
+        // The filterset goes over as JSON; SAPI compiles it.
+        $this->assertEquals(
+            '[{"filters":[{"field":"status","operator":"is","value":"published"}]}]',
+            $queryParams['filterset']
+        );
+        $this->assertArrayNotHasKey('fq', $queryParams);
 
         $this->assertTrue(str_starts_with(strval($requestUri), "https://my-publication.bbvms.com/sapi/mediaclip?"));
         $this->assertEquals("GET", $mockHandler->getLastRequest()->getMethod());
@@ -401,7 +404,34 @@ class MediaClipTest extends \Codeception\Test\Unit
 
         parse_str($mockHandler->getLastRequest()->getUri()->getQuery(), $queryParams);
 
+        $this->assertArrayNotHasKey('filterset', $queryParams);
         $this->assertArrayNotHasKey('fq', $queryParams);
+    }
+
+    public function testSearchWithRawFilterQueriesUsesIndexedEncoding()
+    {
+        $mockHandler = new \GuzzleHttp\Handler\MockHandler([
+            new GuzzleResponse(200)
+        ]);
+        $sdk = new Sdk("my-publication", new EmptyAuthenticator(), ['handler' => $mockHandler]);
+
+        $sdk->mediaclip->searchAsync(
+            FilterSet::create(),
+            15,
+            0,
+            'createddate desc',
+            '*',
+            ['(statusSort:"published")']
+        )->wait();
+
+        $requestUri = $mockHandler->getLastRequest()->getUri();
+        parse_str($requestUri->getQuery(), $queryParams);
+
+        $this->assertEquals(['(statusSort:"published")'], $queryParams['fq']);
+        // Indexed. SAPI ignores `fq[][0]=` and still answers HTTP 200, so getting
+        // this wrong looks exactly like an empty result.
+        $this->assertStringContainsString('fq%5B0%5D=', strval($requestUri));
+        $this->assertStringNotContainsString('fq%5B%5D%5B0%5D=', strval($requestUri));
     }
 
 }
