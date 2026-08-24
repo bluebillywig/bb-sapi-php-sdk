@@ -9,6 +9,7 @@ use BlueBillywig\Contracts\Listable;
 use BlueBillywig\Contracts\Updatable;
 use BlueBillywig\Entity;
 use BlueBillywig\Request;
+use BlueBillywig\Search\FilterSet;
 use BlueBillywig\Response;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\RequestOptions;
@@ -29,6 +30,66 @@ use GuzzleHttp\RequestOptions;
 class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatable, Deletable
 {
     protected static string $helperCls = \BlueBillywig\Helpers\MediaClipHelper::class;
+
+    /**
+     * Search media clips using a filterset.
+     *
+     * The filtered counterpart to {@see listAsync()}, which can only page and
+     * sort. A filterset is the same structure the OVP builds in its filter UI, so
+     * a search moves between the OVP, the API and this SDK unchanged.
+     *
+     *     $filterSet = FilterSet::create()
+     *         ->where('status', FilterOperator::Is, 'published')
+     *         ->where('title', FilterOperator::Contains, 'koert');
+     *
+     *     $sdk->mediaclip->search($filterSet);
+     *
+     * The filterset goes over the wire as JSON and SAPI compiles it, exactly as
+     * the OVP does it. It is deliberately not compiled to a Solr query here:
+     * that would be a second implementation of semantics the server already owns,
+     * and a drifted filter fails silently — SAPI answers HTTP 200 with an empty
+     * envelope, indistinguishable from "no results".
+     *
+     * @param FilterSet $filterSet Groups are AND-ed, filters within a group OR-ed.
+     * @param int $limit
+     * @param int $offset
+     * @param string $sort
+     * @param string $query Free-text query; '*' matches everything.
+     * @param list<string> $filterQueries Raw Solr filter queries, for the rare
+     *        case a filterset cannot express something. NOTE the encoding: these
+     *        go out as `fq[0]=`. SAPI ignores `fq[][0]=` — the shape
+     *        `http_build_query(['fq[]' => [...]])` produces — and ignores a plain
+     *        `fq=`, in both cases silently.
+     */
+    public function searchAsync(
+        FilterSet $filterSet,
+        int $limit = 15,
+        int $offset = 0,
+        string $sort = 'createddate desc',
+        string $query = '*',
+        array $filterQueries = []
+    ): PromiseInterface {
+        $queryOptions = [
+            'q' => $query,
+            'limit' => $limit,
+            'offset' => $offset,
+            'sort' => $sort,
+        ];
+
+        if (!$filterSet->isEmpty()) {
+            $queryOptions['filterset'] = $filterSet->toJson();
+        }
+
+        if ($filterQueries !== []) {
+            // 'fq', never 'fq[]' — see the note above.
+            $queryOptions['fq'] = array_values($filterQueries);
+        }
+
+        return $this->sdk->sendRequestAsync(
+            new Request('GET', '/sapi/mediaclip'),
+            [RequestOptions::QUERY => $queryOptions]
+        );
+    }
 
     /**
      * Retrieve a list of MediaClips and return a promise.
