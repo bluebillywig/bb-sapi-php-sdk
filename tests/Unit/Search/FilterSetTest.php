@@ -89,14 +89,121 @@ class FilterSetTest extends \Codeception\Test\Unit
         $this->assertEquals('mediatype', $groups[0]['filters'][0]['field']);
     }
 
-    public function testPresenceOperatorsSurviveWithoutAValue()
+    public function testPresenceOperatorsCarryThePlaceholderTheBackendRequires()
     {
-        // `isEmpty` / `isNotEmpty` test presence, so an absent value is correct
-        // and must not cause the filter to be dropped.
+        // The backend's compiler skips ANY filter whose value is empty —
+        // presence tests included — so a bare isEmpty silently never fires
+        // (verified live: it returned the full unfiltered publication). OVP6
+        // sends the placeholder '*', with the comment "backend needs a value to
+        // work"; the SDK must do the same.
         $filterSet = FilterSet::create()->where('author', FilterOperator::IsEmpty);
 
-        $this->assertCount(1, $filterSet->toArray());
         $this->assertFalse($filterSet->isEmpty());
+        $this->assertSame(
+            [['filters' => [['field' => 'author', 'operator' => 'isEmpty', 'value' => '*']]]],
+            $filterSet->toArray()
+        );
+    }
+
+    public function testThePlaceholderOverridesWhateverValueACallerSupplied()
+    {
+        // '*' is the canonical wire value for presence tests; a caller-supplied
+        // value would only vary the bytes without changing the semantics.
+        $filterSet = FilterSet::create()->where('author', FilterOperator::IsNotEmpty, 'anything');
+
+        $this->assertSame('*', $filterSet->toArray()[0]['filters'][0]['value']);
+    }
+
+    public function testNumbersAndBooleansAreNormalisedToTheStringsTheBackendUnderstands()
+    {
+        // Verified live: a JSON number works, but a JSON boolean gets mangled
+        // into "1" by the backend and matches NOTHING (hasInteractivity true as
+        // a boolean returned 0; as the string 'true', 868). Normalising here is
+        // what keeps an ingested OVP/Automations filterset working.
+        $this->assertSame(
+            '100',
+            FilterSet::create()->where('views', FilterOperator::IsGreaterThan, 100)->toArray()[0]['filters'][0]['value']
+        );
+        $this->assertSame(
+            'true',
+            FilterSet::create()->where('hasInteractivity', FilterOperator::Is, true)->toArray()[0]['filters'][0]['value']
+        );
+        $this->assertSame(
+            'false',
+            FilterSet::create()->where('isImported', FilterOperator::Is, false)->toArray()[0]['filters'][0]['value']
+        );
+        $this->assertSame(
+            '2.5',
+            FilterSet::create()->where('views', FilterOperator::IsGreaterThan, 2.5)->toArray()[0]['filters'][0]['value']
+        );
+        $this->assertSame(
+            ['1', '2.5', 'true'],
+            FilterSet::create()->where('views', FilterOperator::IsAnyOf, [1, 2.5, true])->toArray()[0]['filters'][0]['value']
+        );
+    }
+
+    public function testNonScalarArrayMembersAreDroppedNotStringified()
+    {
+        // strval() on an array yields the literal string "Array" (plus a
+        // warning); junk members are dropped instead.
+        $filterSet = FilterSet::fromArray([
+            ['filters' => [['field' => 'status', 'operator' => 'is', 'value' => ['published', ['nested']]]]],
+        ]);
+
+        $this->assertSame(['published'], $filterSet->toArray()[0]['filters'][0]['value']);
+    }
+
+    public function testAnUnknownOperatorThrowsADescriptiveException()
+    {
+        // PHP is the strict SDK: the operator is a real enum, so an OVP
+        // filterset using an operator this enum does not know yet cannot
+        // round-trip. Fail with a message that says what to do about it,
+        // instead of the bare ValueError enums throw by default.
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unknown filter operator "sneaky"');
+
+        FilterSet::fromArray([
+            ['filters' => [['field' => 'status', 'operator' => 'sneaky', 'value' => 'x']]],
+        ]);
+    }
+
+    public function testAMissingOperatorThrowsTheSameException()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        FilterSet::fromArray([['filters' => [['field' => 'status', 'value' => 'x']]]]);
+    }
+
+    public function testMalformedGroupsAndFiltersAreSkippedNotFatal()
+    {
+        // fromArray ingests external data (stored filtersets, request bodies);
+        // one junk entry must not take the whole filterset down.
+        $filterSet = FilterSet::fromArray([
+            'not-a-group',
+            ['filters' => 'not-a-list'],
+            ['filters' => ['not-a-filter', ['field' => 'status', 'operator' => 'is', 'value' => 'published']]],
+        ]);
+
+        $this->assertSame(
+            [['filters' => [['field' => 'status', 'operator' => 'is', 'value' => 'published']]]],
+            $filterSet->toArray()
+        );
+    }
+
+    public function testJunkValuesAreTreatedAsNoValue()
+    {
+        $filterSet = FilterSet::fromArray([
+            ['filters' => [['field' => 'status', 'operator' => 'is', 'value' => ['x' => ['nested' => true]]]]],
+        ]);
+
+        // The nested-array member is dropped, leaving nothing to match on.
+        $this->assertTrue($filterSet->isEmpty());
+
+        // A non-scalar, non-array value (an object) is "no value", not garbage.
+        $objectValued = FilterSet::fromArray([
+            ['filters' => [['field' => 'status', 'operator' => 'is', 'value' => new \stdClass()]]],
+        ]);
+        $this->assertTrue($objectValued->isEmpty());
     }
 
     public function testAnEmptyFilterSetIsEmpty()

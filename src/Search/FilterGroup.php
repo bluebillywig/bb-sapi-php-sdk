@@ -19,13 +19,26 @@ final class FilterGroup
     }
 
     /**
-     * @param array{filters?: list<array<string, mixed>>} $group
+     * Tolerant of junk: entries that are not arrays are skipped, because this is
+     * an ingestion point for external data (a stored filterset, a request body),
+     * and one malformed entry should not take the whole filterset down.
+     *
+     * @param array{filters?: mixed} $group
      */
     public static function fromArray(array $group): self
     {
-        return new self(array_map(
-            static fn(array $filter): Filter => Filter::fromArray($filter),
-            $group['filters'] ?? []
-        ));
+        $rawFilters = $group['filters'] ?? [];
+        if (!is_array($rawFilters)) {
+            $rawFilters = [];
+        }
+
+        $filters = [];
+        foreach ($rawFilters as $filter) {
+            if (is_array($filter)) {
+                $filters[] = Filter::fromArray($filter);
+            }
+        }
+
+        return new self($filters);
     }
 }

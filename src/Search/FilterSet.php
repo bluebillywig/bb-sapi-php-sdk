@@ -18,6 +18,13 @@ namespace BlueBillywig\Search;
  * or hand back a filterset the OVP produced:
  *
  *     $filterSet = FilterSet::fromArray($json);
+ *
+ * Server-side quirks a caller inherits (the compiler is formatengine's):
+ *  - A filter whose value is the string '0' is dropped by the backend's
+ *    empty-value guard, so "views is 0" cannot be expressed as a filterset.
+ *  - In values, '+' becomes a space and '"' is stripped before compilation.
+ *  - An unknown FIELD is not an error: it queries a non-existent index field
+ *    and returns numfound=0 — a typo'd field name looks like an empty library.
  */
 final class FilterSet
 {
@@ -45,18 +52,29 @@ final class FilterSet
             $filterSet = $filterSet['filterSet'];
         }
 
-        return new self(array_values(array_map(
-            static fn(array $group): FilterGroup => FilterGroup::fromArray($group),
-            $filterSet
-        )));
+        $groups = [];
+        foreach ($filterSet as $group) {
+            // An ingestion point for external data: skip junk entries rather
+            // than letting one malformed group take the whole filterset down.
+            if (is_array($group)) {
+                $groups[] = FilterGroup::fromArray($group);
+            }
+        }
+
+        return new self($groups);
     }
 
     /**
      * Add a condition as its own group, so it is AND-ed with the rest.
      *
-     * @param string|list<string> $value
+     * @param string|int|float|bool|array<string|int|float|bool> $value
      */
-    public function where(string $field, FilterOperator $operator, string|array $value = '', ?string $type = null): self
+    public function where(
+        string $field,
+        FilterOperator $operator,
+        string|int|float|bool|array $value = '',
+        ?string $type = null
+    ): self
     {
         return $this->andGroup(new Filter($field, $operator, $value, $type));
     }
@@ -94,7 +112,13 @@ final class FilterSet
                         [
                             'field' => $filter->field,
                             'operator' => $filter->operator->value,
-                            'value' => $filter->value,
+                            // The backend's compiler skips ANY filter whose value
+                            // is empty — presence tests included — so isEmpty/
+                            // isNotEmpty must carry a placeholder or they never
+                            // fire. '*' is what OVP6 sends ("backend needs a
+                            // value to work"), and it overrides whatever the
+                            // caller supplied so the wire format is canonical.
+                            'value' => $filter->operator->ignoresValue() ? '*' : $filter->value,
                             'type' => $filter->type,
                         ],
                         static fn($value): bool => $value !== null
