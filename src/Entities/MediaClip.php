@@ -26,6 +26,7 @@ use GuzzleHttp\RequestOptions;
  * @method Response create(array $props, bool $softSave = false, ?string $lang = null) Create a MediaClip. @see createAsync
  * @method Response update(int|string $id, array $props, bool $softSave = false, ?string $lang = null) Update a MediaClip by its ID and return a promise. @see updateAsync
  * @method Response delete(int|string $id, bool $purge = false) Delete a MediaClip by its ID. @see deleteAsync
+ * @method Response search(FilterSet $filterSet, int $limit = 15, int $offset = 0, string $sort = 'createddate desc', string $query = '*', array $filterQueries = []) Search MediaClips using a filterset. @see searchAsync
  */
 class MediaClip extends Entity implements Listable, Gettable, Creatable, Updatable, Deletable
 {
